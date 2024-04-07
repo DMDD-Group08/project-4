@@ -32,7 +32,7 @@ SELECT
  ROUND(
         CASE 
             WHEN total_orders = 0 THEN 100  -- Handle division by zero
-            ELSE (1 - (returned_orders / total_orders)) * 100  -- Calculate reliability index as a percentage
+            ELSE ROUND((1 - (returned_orders / total_orders)) * 5,0)  -- Calculate reliability index on a scale og 1-5
         END,
         2  -- Round to two decimal places
     ) AS Reliability_Index
@@ -63,7 +63,7 @@ LEFT JOIN
             "CUSTOMER_ORDER" o ON op.customer_order_id = o.id
         GROUP BY 
             o.customer_id
-    ) returned ON c.id = returned.customer_id;
+    ) returned ON c.id = returned.customer_id;    
 
 
 -- Delivery Date of the order : 
@@ -112,10 +112,6 @@ JOIN
     "PRODUCT" p ON op.product_id = p.id
 JOIN 
     "CATEGORY" c ON p.category_id = c.id;
-    
-
-
-
 
 -- Category list
 
@@ -178,8 +174,59 @@ FROM order_product_actual_price_per_unit
 GROUP BY customer_order_id;
 
 -- Refund Amount
+CREATE OR REPLACE VIEW REFUND_AMOUNT_VIEW AS
+SELECT 
+    OP.ID,
+    OP.PRODUCT_ID,
+    P.PRICE,
+    OP.CUSTOMER_ORDER_ID,
+    O.ORDER_DATE,
+    P.CATEGORY_ID,
+    NVL(D.DISCOUNT_RATE, 0) AS DISCOUNT_RATE,
+    CASE 
+        WHEN R.processing_fee IS NOT NULL THEN NVL(P.PRICE - (P.PRICE * NVL(D.DISCOUNT_RATE, 0) / 100) - R.processing_fee, P.PRICE)
+        ELSE NVL(P.PRICE - (P.PRICE * NVL(D.DISCOUNT_RATE, 0) / 100), P.PRICE)
+    END AS ACTUAL_PRICE 
+FROM 
+    CUSTOMER_ORDER O 
+JOIN 
+    ORDER_PRODUCT OP ON OP.CUSTOMER_ORDER_ID = O.ID 
+JOIN 
+    PRODUCT P ON OP.PRODUCT_ID = P.ID 
+LEFT JOIN 
+    DISCOUNT D ON P.CATEGORY_ID = D.CATEGORY_ID AND O.ORDER_DATE BETWEEN D.START_DATE AND D.END_DATE 
+JOIN 
+    RETURN R ON OP.ID = R.ORDER_PRODUCT_ID;
 
-CREATE OR REPLACE VIEW refund_amount_view AS
-SELECT distinct op.customer_order_id,op.product_id,(op.price_charged * r1.quantity_returned) - NVL(r1.processing_fee, 0) as refund_amount
-                                       FROM order_product_actual_price_per_unit op join return r1
-                                       on op.order_product_id = r1.order_product_id where r1.seller_refund > 0 ;
+
+-- To check all the returns which are approved by system (this will be used by seller)
+CREATE OR REPLACE VIEW CHECK_APPROVED_RETURNS_BY_SYSTEM AS
+SELECT 
+    R.ID,
+    P.NAME AS PRODUCT_NAME, 
+    R.REASON, 
+    R.RETURN_DATE, 
+    R.QUANTITY_RETURNED
+FROM RETURN R
+JOIN ORDER_PRODUCT OP ON R.ORDER_PRODUCT_ID = OP.ID
+JOIN PRODUCT P ON P.ID = OP.PRODUCT_ID
+WHERE REQUEST_ACCEPTED=1 AND REFUND_STATUS='PROCESSING'
+ORDER BY 3;
+
+-- 
+CREATE OR REPLACE VIEW accepted_returns_view AS
+SELECT
+    s.name AS seller_name,
+    p.name AS product_name,
+    p.id AS product_id,
+    r.reason AS return_reason,
+    r.return_date,
+    r.order_product_id,
+    r.quantity_returned
+FROM
+    return r
+    INNER JOIN order_product op ON r.order_product_id = op.id
+    INNER JOIN product p ON op.product_id = p.id
+    INNER JOIN seller s ON p.seller_id = s.id
+WHERE
+    r.request_accepted = 1;
