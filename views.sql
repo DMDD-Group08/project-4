@@ -202,7 +202,8 @@ JOIN
 -- To check all the returns which are approved by system (this will be used by seller)
 CREATE OR REPLACE VIEW CHECK_APPROVED_RETURNS_BY_SYSTEM AS
 SELECT 
-    R.ID,
+    R.ID AS RETURN_ID,
+    S.CONTACT_NO AS SELLER_CONTACT,
     P.NAME AS PRODUCT_NAME, 
     R.REASON, 
     R.RETURN_DATE, 
@@ -210,6 +211,7 @@ SELECT
 FROM RETURN R
 JOIN ORDER_PRODUCT OP ON R.ORDER_PRODUCT_ID = OP.ID
 JOIN PRODUCT P ON P.ID = OP.PRODUCT_ID
+JOIN SELLER S ON P.SELLER_ID = S.ID 
 WHERE REQUEST_ACCEPTED=1 AND REFUND_STATUS='PROCESSING'
 ORDER BY 3;
 
@@ -222,7 +224,8 @@ SELECT
     r.reason AS return_reason,
     r.return_date,
     r.order_product_id,
-    r.quantity_returned
+    r.quantity_returned,
+    r.store_id
 FROM
     return r
     INNER JOIN order_product op ON r.order_product_id = op.id
@@ -230,3 +233,12 @@ FROM
     INNER JOIN seller s ON p.seller_id = s.id
 WHERE
     r.request_accepted = 1;
+    
+-- Quantity available for return
+ 
+CREATE OR REPLACE VIEW QTY_AVAILABLE_FOR_RETURN AS
+SELECT op.id AS Order_product_id_,
+       op.quantity - NVL(r.quantity_returned, 0) AS Available_Qty
+FROM order_product op
+LEFT JOIN "RETURN" r ON op.id = r.order_product_id
+WHERE r.refund_status IS NULL OR r.refund_status <> 'REJECTED';
