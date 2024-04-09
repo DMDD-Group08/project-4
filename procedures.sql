@@ -2,17 +2,48 @@
 
 --------------------- UPDATE_SELLER_REFUND procedure
 CREATE OR REPLACE PROCEDURE UPDATE_SELLER_REFUND (
+    return_id_if_exists OUT NUMBER,
+    seller_contact_if_exists OUT NUMBER,
+    seller_return_combination_if_exists OUT NUMBER,
     return_id         IN return.id%TYPE,
-    accept_yes_no IN VARCHAR
+    accept_yes_no IN VARCHAR,
+    seller_contact IN seller.contact_no%TYPE  
 ) AS
     invalid_input_exception EXCEPTION;
+    invalid_contact_exception EXCEPTION;
+    invalid_return_id_exception EXCEPTION;
+    invalid_seller_return_combination_exception EXCEPTION;
+    
     CUSTOMER_RI NUMBER(1);
     PRICE_CHARGED NUMBER(10,2);
 BEGIN
+    
     -- IF accept_yes_no IS RANDOM VALUE, RAISE invalid_input_exception
     IF UPPER(accept_yes_no) NOT IN ('YES', 'NO') THEN
         RAISE invalid_input_exception;
     END IF;
+    dbms_output.put_line(1);
+    
+    -- if return_id does not exists, raise exception   
+    SELECT COUNT(1)INTO return_id_if_exists FROM RETURN WHERE ID=return_id;
+    IF return_id_if_exists=0 THEN
+        RAISE invalid_return_id_exception;
+    END IF;
+    dbms_output.put_line(2);
+    
+    -- if seller_contact does not exists, raise exception   
+    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = seller_contact;
+    IF seller_contact_if_exists=0 THEN
+        RAISE invalid_contact_exception;
+    END IF;  
+    dbms_output.put_line(3);
+    
+    -- if seller_return_id does not exists, raise exception   
+    SELECT COUNT(1) INTO seller_return_combination_if_exists FROM CHECK_APPROVED_RETURNS_BY_SYSTEM WHERE RETURN_ID=return_id AND SELLER_CONTACT=seller_contact;
+    IF seller_return_combination_if_exists=0 THEN
+        RAISE invalid_seller_return_combination_exception;
+    END IF;    
+    dbms_output.put_line(4);
     
     -- UPDATE REFUND_STATUS BASED ON IF SELLER ACCEPTS/REJECTS THE RETURN
     UPDATE RETURN
@@ -58,6 +89,10 @@ EXCEPTION
         dbms_output.put_line('Primary/Unique key violation occured. Make sure to enter correct values.');
     WHEN invalid_input_exception THEN
         dbms_output.put_line('Invalid input. Please enter either YES or NO.');
+    WHEN invalid_return_id_exception THEN
+        dbms_output.put_line('Invalid return id. Please check if return_id entered is correct.');
+    WHEN invalid_contact_exception THEN
+        dbms_output.put_line('Invalid seller contact no. Please check if seller contact_no entered is correct.');
     WHEN OTHERS THEN
         dbms_output.put_line('Something else went wrong - '
                              || sqlcode
@@ -68,15 +103,100 @@ END;
 
 ------------------------ create_return procedure
 CREATE OR REPLACE PROCEDURE create_return (
+    qty OUT NUMBER,
     reason            IN return.reason%TYPE,
     quantity_returned IN return.quantity_returned%TYPE,
     store_id          IN return.store_id%TYPE,
     order_product_id  IN return.order_product_id%TYPE
 ) AS
     l_days_remaining NUMBER;
+ 
+    -- Custom exceptions
+    e_invalid_store_id EXCEPTION;
+    e_invalid_order_product_id EXCEPTION;
+    e_invalid_quantity EXCEPTION;
+    e_invalid_reason EXCEPTION;
+    e_invalid_quantity_returned EXCEPTION;
+    e_invalid_store_id_format EXCEPTION;
+    e_invalid_order_product_id_format EXCEPTION;
+    e_invalid_reason_format EXCEPTION;
+    e_invalid_quantity_returned_format EXCEPTION;
+ 
 BEGIN
     -- Output debug message
     DBMS_OUTPUT.PUT_LINE('Procedure execution: Initiating return creation.');
+    
+    -- Check if reason is valid (not a number)
+    BEGIN
+        IF REGEXP_LIKE(reason, '^[0-9]+$') THEN
+            RAISE e_invalid_reason;
+        END IF;
+    EXCEPTION
+        WHEN e_invalid_reason THEN
+            RAISE e_invalid_reason_format;
+    END;
+    
+    -- Check if quantity_returned is a number
+    BEGIN
+        l_days_remaining := TO_NUMBER(quantity_returned);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            RAISE e_invalid_quantity_returned_format;
+    END;
+    
+    -- Check if store_id is a number
+    BEGIN
+        l_days_remaining := TO_NUMBER(store_id);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            RAISE e_invalid_store_id_format;
+    END;
+    
+    -- Check if order_product_id is a number
+    BEGIN
+        l_days_remaining := TO_NUMBER(order_product_id);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            RAISE e_invalid_order_product_id_format;
+    END;
+    
+    -- Check if quantity_returned is less than or equal to Available Quantity in Available Quantity View
+    BEGIN
+        SELECT Available_Qty INTO qty
+        FROM QTY_AVAILABLE_FOR_RETURN
+        WHERE Order_product_id_ = order_product_id;
+        
+        
+        IF quantity_returned > qty THEN
+            RAISE e_invalid_quantity;
+        END IF;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE e_invalid_order_product_id;
+    END;
+    
+    -- Check if store_id is present in the ID column of STORE entity
+    BEGIN
+        SELECT id
+        INTO l_days_remaining
+        FROM STORE
+        WHERE id = store_id;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE e_invalid_store_id;
+    END;
+    
+    -- Check if order_product_id is present in ID of ORDER_PRODUCT Entity
+    BEGIN
+        SELECT id
+        INTO l_days_remaining
+        FROM ORDER_PRODUCT
+        WHERE id = order_product_id;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE e_invalid_order_product_id;
+    END;
+    
     
     -- Check if return is valid based on days remaining to return
     SELECT COUNT(*)
@@ -111,9 +231,9 @@ BEGIN
         );
         
         -- Output debug message
-        DBMS_OUTPUT.PUT_LINE('Procedure execution: Return created successfully.');
+        DBMS_OUTPUT.PUT_LINE(' Return created successfully.');
     ELSE
-         INSERT INTO return (
+    INSERT INTO return (
             id,
             reason,
             return_date,
@@ -133,17 +253,30 @@ BEGIN
             0
         );
         -- Output debug message
-        DBMS_OUTPUT.PUT_LINE('Procedure execution: Return cannot be initiated due to insufficient days remaining.');
+        DBMS_OUTPUT.PUT_LINE(' Return cannot be initiated due to insufficient days remaining.');
     END IF;
     
     -- Output debug message
-    DBMS_OUTPUT.PUT_LINE('Procedure execution: Completed.');
+    DBMS_OUTPUT.PUT_LINE(' Completed.');
     
     -- Commit transaction
     COMMIT;
 EXCEPTION
+    WHEN e_invalid_reason_format THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid reason format.');
+    WHEN e_invalid_quantity_returned_format THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid quantity returned format.');
+    WHEN e_invalid_store_id_format THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid store ID format.');
+    WHEN e_invalid_order_product_id_format THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid order product ID format.');
+    WHEN e_invalid_quantity THEN
+        DBMS_OUTPUT.PUT_LINE('Quantity returned cannot exceed available quantity.');
+    WHEN e_invalid_order_product_id THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid order product ID.');
+    WHEN e_invalid_store_id THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid store ID.');
     WHEN OTHERS THEN
-        -- Output error message
         DBMS_OUTPUT.PUT_LINE('Procedure execution: Error - ' || SQLERRM);
 END;
 /
@@ -224,7 +357,7 @@ BEGIN
   IF v_feedback_exists = 0 THEN
     -- Insert new feedback if it does not exist.
     INSERT INTO feedback (id, customer_id, store_id, customer_rating, review)
-    VALUES (feedback_seq.NEXTVAL, v_customer_id, v_store_id, p_customer_rating, p_review);
+    VALUES (feedback_id_seq.NEXTVAL, v_customer_id, v_store_id, p_customer_rating, p_review);
   ELSE
     -- Update existing feedback.
     UPDATE feedback
@@ -292,6 +425,7 @@ END;
 ------------------ ADD_PRODUCT procedure
 CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
     category_id_ OUT product.category_id%TYPE,
+    category_if_exists OUT NUMBER,
     name      IN product.name%TYPE,
     price         IN product.price%TYPE,
     mfg_date  IN product.mfg_date%TYPE,
@@ -299,9 +433,18 @@ CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
     category_name IN category.name%TYPE,
     seller_id IN product.seller_id%TYPE
 ) AS 
+    invalid_category_exception EXCEPTION;
 BEGIN
+    -- check if category exists   
+    SELECT COUNT(1)INTO category_if_exists FROM CATEGORY WHERE name=category_name;
+    IF category_if_exists=0 THEN
+        RAISE invalid_category_exception;
+    END IF;   
+    
+    -- if category exists, fetch category_id    
     SELECT id into category_id_ from category where name=category_name;
 
+    -- insert product
     INSERT INTO product (
         id,
         name,
@@ -324,6 +467,8 @@ BEGIN
 EXCEPTION
     WHEN dup_val_on_index THEN
         dbms_output.put_line('Primary/Unique key violation occured. Make sure to enter correct values.');
+    WHEN invalid_category_exception THEN
+        dbms_output.put_line('Category does not exist. Enter valid category');
     WHEN OTHERS THEN -- catch all other exceptions
         IF sqlcode = -2291 THEN -- Handle foreign key constraint violation
             dbms_output.put_line('Foreign key constraint violation occurred.');
@@ -355,3 +500,15 @@ EXCEPTION
         RAISE;
 END;
 /
+
+-- CUSTOMER_USER
+GRANT EXECUTE ON BUSINESS_MANAGER.CREATE_RETURN TO CUSTOMER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.SUBMIT_FEEDBACK TO CUSTOMER_USER;
+
+-- STORE_USER
+GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_STORE_AVAILABILITY TO STORE_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.Get_Feedback_For_Store TO STORE_USER;
+
+-- SELLER_USER
+GRANT EXECUTE ON BUSINESS_MANAGER.ADD_PRODUCT TO SELLER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_SELLER_REFUND TO SELLER_USER;
