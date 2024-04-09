@@ -161,24 +161,37 @@ CREATE OR REPLACE PROCEDURE submit_feedback(
   v_feedback_exists NUMBER;
   v_accepted_return_exists NUMBER;
 
-  -- Define a custom exception for an invalid rating.
+  -- Custom exceptions
   e_invalid_rating EXCEPTION;
+  e_invalid_email_format EXCEPTION;
+  e_store_name_too_long EXCEPTION;
+  e_email_too_long EXCEPTION;
+  e_empty_store_name EXCEPTION;
+  e_review_format_error EXCEPTION; -- New exception for review format validation
+
 BEGIN
   -- Validate the customer rating is between 1 and 5.
   IF p_customer_rating < 1 OR p_customer_rating > 5 THEN
     RAISE e_invalid_rating;
   END IF;
 
-  -- Validate the store name is not empty.
+  -- Validate the store name is not empty and does not exceed expected length.
   IF TRIM(p_store_name) IS NULL THEN
-    DBMS_OUTPUT.PUT_LINE('Store name cannot be empty.');
-    RETURN;
+    RAISE e_empty_store_name;
+  ELSIF LENGTH(p_store_name) > 20 THEN -- 20 is the max length
+    RAISE e_store_name_too_long;
   END IF;
 
-  -- Validate the customer email is not empty and is in a valid format.
-  IF NOT REGEXP_LIKE(p_customer_email, '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') THEN
-    DBMS_OUTPUT.PUT_LINE('Invalid customer email address format.');
-    RETURN;
+  -- Validate the customer email is not empty, does not exceed expected length, and is in a valid format.
+  IF LENGTH(p_customer_email) > 30 THEN -- 30 is the max length for email
+    RAISE e_email_too_long;
+  ELSIF NOT REGEXP_LIKE(p_customer_email, '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$') THEN
+    RAISE e_invalid_email_format;
+  END IF;
+
+  -- New validation for p_review to check it is not a single integer.
+  IF LENGTH(p_review) = 1 AND REGEXP_LIKE(p_review, '^\d$') THEN
+    RAISE e_review_format_error;
   END IF;
 
   -- Lookup the store_id using the store name.
@@ -211,7 +224,7 @@ BEGIN
   IF v_feedback_exists = 0 THEN
     -- Insert new feedback if it does not exist.
     INSERT INTO feedback (id, customer_id, store_id, customer_rating, review)
-    VALUES (FEEDBACK_ID_SEQ.NEXTVAL, v_customer_id, v_store_id, p_customer_rating, p_review);
+    VALUES (feedback_seq.NEXTVAL, v_customer_id, v_store_id, p_customer_rating, p_review);
   ELSE
     -- Update existing feedback.
     UPDATE feedback
@@ -227,11 +240,29 @@ EXCEPTION
   WHEN e_invalid_rating THEN
     DBMS_OUTPUT.PUT_LINE('Customer rating must be between 1 and 5.');
     ROLLBACK;
+  WHEN e_invalid_email_format THEN
+    DBMS_OUTPUT.PUT_LINE('Invalid customer email address format.');
+    ROLLBACK;
+  WHEN e_store_name_too_long THEN
+    DBMS_OUTPUT.PUT_LINE('Store name exceeds the maximum length allowed.');
+    ROLLBACK;
+  WHEN e_email_too_long THEN
+    DBMS_OUTPUT.PUT_LINE('Email exceeds the maximum length allowed.');
+    ROLLBACK;
+  WHEN e_empty_store_name THEN
+    DBMS_OUTPUT.PUT_LINE('Store name cannot be empty.');
+    ROLLBACK;
+  WHEN e_review_format_error THEN
+    DBMS_OUTPUT.PUT_LINE('Review cannot be a integer.');
+    ROLLBACK;
   WHEN OTHERS THEN
     ROLLBACK;
-    RAISE;x
+    RAISE;
 END;
 /
+
+
+
 
 ----------------- update_store_availability procedure
 CREATE OR REPLACE PROCEDURE update_store_availability (
