@@ -160,7 +160,7 @@ BEGIN
         processing_fee NUMBER(5, 2), -- not all returns will be successful so I put not, null,
         request_accepted NUMBER(1) CHECK (request_accepted IN (0, 1)),
         store_id VARCHAR(10) NOT NULL,
-        order_product_id VARCHAR(10) NOT NULL UNIQUE,
+        order_product_id VARCHAR(10) NOT NULL,
         CONSTRAINT fk_return_order_product FOREIGN KEY (order_product_id) REFERENCES order_product(id),
         CONSTRAINT return_store_fk FOREIGN KEY (store_id) REFERENCES store(id)
     )';
@@ -615,7 +615,6 @@ END;
 
 
 -- DML FOR PRODUCT ENTITY
-
 
 
 
@@ -1100,7 +1099,7 @@ END;
 BEGIN
     BEGIN
         INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
-        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Alegeric to the product', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'SUCCESSFUL', 2, 5.00, 1, '2001', '5510');
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Alegeric to the product', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'COMPLETED', 2, 5.00, 1, '2001', '5510');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
             DBMS_OUTPUT.PUT_LINE('Duplicate return RET001 not inserted.');
@@ -1110,7 +1109,7 @@ BEGIN
     
     BEGIN
         INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
-        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Changed mind', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'SUCCESSFUL', 1, 0, 1, '2002', '5504');
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Changed mind', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'COMPLETED', 1, 0, 1, '2002', '5504');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
             DBMS_OUTPUT.PUT_LINE('Duplicate return RET002 not inserted.');
@@ -1120,7 +1119,7 @@ BEGIN
     
      BEGIN
         INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
-        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Product defect', TO_DATE('2024-03-21', 'YYYY-MM-DD'), 'SUCCESSFUL', 1, 0, 1, '2003', '5502');
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Product defect', TO_DATE('2024-03-21', 'YYYY-MM-DD'), 'COMPLETED', 1, 0, 1, '2003', '5502');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
             DBMS_OUTPUT.PUT_LINE('Duplicate return RET003 not inserted.');
@@ -1130,7 +1129,7 @@ BEGIN
     
     BEGIN
         INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
-        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Late delivery.', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'SUCCESSFUL', 1, 10.00, 1, '2001', '5506');
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Late delivery.', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'COMPLETED', 1, 10.00, 1, '2001', '5506');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
             DBMS_OUTPUT.PUT_LINE('Duplicate return RET004 not inserted.');
@@ -1214,14 +1213,3 @@ BEGIN
 END;
 /
 
--- CUSTOMER_USER
-GRANT EXECUTE ON BUSINESS_MANAGER.CREATE_RETURN TO CUSTOMER_USER;
-GRANT EXECUTE ON BUSINESS_MANAGER.SUBMIT_FEEDBACK TO CUSTOMER_USER;
-
--- STORE_USER
-GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_STORE_AVAILABILITY TO STORE_USER;
-GRANT EXECUTE ON BUSINESS_MANAGER.Get_Feedback_For_Store TO STORE_USER;
-
--- SELLER_USER
-GRANT EXECUTE ON BUSINESS_MANAGER.ADD_PRODUCT TO SELLER_USER;
-GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_SELLER_REFUND TO SELLER_USER;
