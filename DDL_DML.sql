@@ -1,3 +1,15 @@
+DROP SEQUENCE CUSTOMER_ID_SEQ;
+DROP SEQUENCE CATEGORY_ID_SEQ;
+DROP SEQUENCE DISCOUNT_ID_SEQ;
+DROP SEQUENCE SELLER_ID_SEQ;
+DROP SEQUENCE PRODUCT_ID_SEQ;
+DROP SEQUENCE ORDER_ID_SEQ;
+DROP SEQUENCE ORDER_PRODUCT_ID_SEQ;
+DROP SEQUENCE STORE_ID_SEQ;
+DROP SEQUENCE RETURN_ID_SEQ;
+DROP SEQUENCE FEEDBACK_ID_SEQ;
+
+
 SET SERVEROUTPUT ON;
 DECLARE
     CNT NUMBER;
@@ -493,7 +505,7 @@ BEGIN
 
     BEGIN
         INSERT INTO category (id, name, return_by_days)
-        VALUES (CATEGORY_ID_SEQ.NEXTVAL, 'Electronics', 30);
+        VALUES (CATEGORY_ID_SEQ.NEXTVAL, 'Electronics', 40);
     EXCEPTION
         WHEN DUP_VAL_ON_INDEX THEN
             DBMS_OUTPUT.PUT_LINE('Duplicate entry for Electronics.');
@@ -503,7 +515,7 @@ BEGIN
 
     BEGIN
         INSERT INTO category (id, name, return_by_days)
-        VALUES (CATEGORY_ID_SEQ.NEXTVAL, 'Clothing/Apparel', 15);
+        VALUES (CATEGORY_ID_SEQ.NEXTVAL, 'Clothing/Apparel', 25);
     EXCEPTION
         WHEN DUP_VAL_ON_INDEX THEN
             DBMS_OUTPUT.PUT_LINE('Duplicate entry for Clothing/Apparel.');
@@ -625,7 +637,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Milk', 2.99, '101', '1004', TO_DATE('2024-03-10', 'YYYY-MM-DD'), TO_DATE('2024-03-29', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD001-Milk not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Milk not inserted.');
         WHEN OTHERS THEN
                 DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -636,7 +648,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Bread', 3.49, '101', '1004', TO_DATE('2024-03-10', 'YYYY-MM-DD'), TO_DATE('2024-03-25', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD002-Bread not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Bread not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -647,7 +659,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Cake', 15.00, '101', '1004', TO_DATE('2024-03-11', 'YYYY-MM-DD'), TO_DATE('2024-03-25', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD003-Cake not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Cake not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -662,7 +674,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'iPhone', 999.00, '102', '1001', TO_DATE('2024-02-15', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD004-iPhone not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product iPhone not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -672,7 +684,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Laptop', 1300.00, '102', '1001', TO_DATE('2024-01-10', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD005-Laptop not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Laptop not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -682,7 +694,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Watches', 250.00, '102', '1001', TO_DATE('2024-02-05', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD006-Watches not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Watches not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -693,7 +705,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Shoes', 120.00, '103', '1002', TO_DATE('2024-03-01', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD007-Shoes not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Shoes not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -703,7 +715,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Jacket', 250.00, '103', '1002', TO_DATE('2024-02-20', 'YYYY-MM-DD'));
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD008-Jacket not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Jacket not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -713,7 +725,7 @@ BEGIN
         VALUES (PRODUCT_ID_SEQ.NEXTVAL, 'Trousers', 85.00, '103', '1002', TO_DATE('2024-01-25', 'YYYY-MM-DD'));
     EXCEPTION WHEN 
         DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate product PROD009-Trousers not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate product Trousers not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -733,7 +745,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '1', TO_DATE('2024-03-16', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD001 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -743,7 +755,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '2', TO_DATE('2024-03-12', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD002 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -753,7 +765,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '3', TO_DATE('2024-03-13', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD003 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -763,7 +775,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '1', TO_DATE('2024-03-14', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD004 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order  not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -773,7 +785,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '2', TO_DATE('2024-03-18', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD005 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -783,7 +795,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '3', TO_DATE('2024-03-11', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD006 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -793,7 +805,7 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '1', TO_DATE('2024-03-17', 'YYYY-MM-DD'), 'DELIVERED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD007 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -803,27 +815,27 @@ BEGIN
         VALUES (ORDER_ID_SEQ.NEXTVAL, '2', TO_DATE('2024-03-16', 'YYYY-MM-DD'), 'SHIPPED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD008 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
 
     BEGIN
         INSERT INTO customer_order (id, customer_id, order_date, status)
-        VALUES (ORDER_ID_SEQ.NEXTVAL, '3', TO_DATE('2024-03-15', 'YYYY-MM-DD'), 'SHIPPED');
+        VALUES (ORDER_ID_SEQ.NEXTVAL, '3', TO_DATE('2024-03-25', 'YYYY-MM-DD'), 'SHIPPED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD009 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
 
     BEGIN
         INSERT INTO customer_order (id, customer_id, order_date, status)
-        VALUES (ORDER_ID_SEQ.NEXTVAL, '1', TO_DATE('2024-03-16', 'YYYY-MM-DD'), 'SHIPPED');
+        VALUES (ORDER_ID_SEQ.NEXTVAL, '1', TO_DATE('2024-03-11', 'YYYY-MM-DD'), 'SHIPPED');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate order ORD010 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate order not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -840,7 +852,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '501', '1501', 3);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0001 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for  not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -850,7 +862,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '501', '1502', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0002 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for  not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -861,7 +873,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '502', '1503', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0003 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -871,7 +883,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '502', '1504', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0004 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -881,7 +893,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '503', '1505', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0005 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -891,7 +903,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '503', '1506', 3);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0006 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -902,7 +914,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '504', '1507', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0007 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -912,7 +924,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '504', '1508', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0008 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -923,7 +935,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '505', '1509', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0009 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -933,7 +945,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '505', '1501', 3);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0010 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -944,7 +956,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '506', '1505', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0011 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -954,7 +966,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '506', '1506', 3);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0012 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -965,7 +977,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '507', '1501', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0013 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -975,7 +987,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '507', '1502', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0014 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -986,7 +998,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '508', '1503', 3);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0015 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -996,7 +1008,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '508', '1504', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0016 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1007,7 +1019,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '509', '1505', 2);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0017 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1017,7 +1029,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '509', '1506', 3);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0018 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1028,7 +1040,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '510', '1501', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0019 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1038,7 +1050,7 @@ BEGIN
         VALUES (ORDER_PRODUCT_ID_SEQ.NEXTVAL, '510', '1502', 2);
     EXCEPTION  
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate entry for OP0020 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate entry for not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1059,7 +1071,7 @@ BEGIN
         VALUES (STORE_ID_SEQ.NEXTVAL, 'UPS', 8007425877, '1 UPS Way', 'Boston', 'MA', '02101', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate store ST001-UPS or phone number in use, not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate store UPS or phone number in use, not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
         
@@ -1071,7 +1083,7 @@ BEGIN
         VALUES (STORE_ID_SEQ.NEXTVAL, 'FedEx', 8004633339, '2 FedEx Plaza', 'New York', 'NY', '10001', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate store ST002-FedEx or phone number in use, not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate store FedEx or phone number in use, not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
        
@@ -1083,7 +1095,7 @@ BEGIN
         VALUES (STORE_ID_SEQ.NEXTVAL, 'Five Guys', 8005551234, '3 Burger Blvd', 'Chicago', 'IL', '60606', 1);
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate store ST003-Five Guys or phone number in use, not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate store Five Guys or phone number in use, not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
         
@@ -1102,7 +1114,7 @@ BEGIN
         VALUES (RETURN_ID_SEQ.NEXTVAL, 'Alegeric to the product', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'COMPLETED', 2, 5.00, 1, '2001', '5510');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate return RET001 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1112,7 +1124,7 @@ BEGIN
         VALUES (RETURN_ID_SEQ.NEXTVAL, 'Changed mind', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'COMPLETED', 1, 0, 1, '2002', '5504');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate return RET002 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1122,7 +1134,7 @@ BEGIN
         VALUES (RETURN_ID_SEQ.NEXTVAL, 'Product defect', TO_DATE('2024-03-21', 'YYYY-MM-DD'), 'COMPLETED', 1, 0, 1, '2003', '5502');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate return RET003 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1132,7 +1144,47 @@ BEGIN
         VALUES (RETURN_ID_SEQ.NEXTVAL, 'Late delivery.', TO_DATE('2024-03-22', 'YYYY-MM-DD'), 'COMPLETED', 1, 10.00, 1, '2001', '5506');
     EXCEPTION 
         WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate return RET004 not inserted.');
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
+    END;
+
+    BEGIN
+        INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Tastes bad', TO_DATE('2024-03-30', 'YYYY-MM-DD'), 'COMPLETED', 1, 1.00, 1, '2002', '5510');
+    EXCEPTION 
+        WHEN DUP_VAL_ON_INDEX THEN
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
+    END;
+
+    BEGIN
+        INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Not a good fit', TO_DATE('2024-03-20', 'YYYY-MM-DD'), 'COMPLETED', 1, 2.00, 1, '2002', '5509');
+    EXCEPTION 
+        WHEN DUP_VAL_ON_INDEX THEN
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
+    END;
+
+    BEGIN
+        INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Broken milk', TO_DATE('2024-03-19', 'YYYY-MM-DD'), 'COMPLETED', 1, 1.00, 1, '2003', '5513');
+    EXCEPTION 
+        WHEN DUP_VAL_ON_INDEX THEN
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
+    END;
+
+    BEGIN
+        INSERT INTO return (id, reason, return_date, refund_status, quantity_returned, processing_fee, request_accepted, store_id, order_product_id)
+        VALUES (RETURN_ID_SEQ.NEXTVAL, 'Wrong flavor', TO_DATE('2024-03-14', 'YYYY-MM-DD'), 'COMPLETED', 1, 2.00, 1, '2003', '5503');
+    EXCEPTION 
+        WHEN DUP_VAL_ON_INDEX THEN
+            DBMS_OUTPUT.PUT_LINE('Duplicate return not inserted.');
         WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
     END;
@@ -1197,19 +1249,5 @@ END;
 /
 
 
-BEGIN
-    BEGIN
-        INSERT INTO seller (id, name, contact_no)
-        VALUES ('APLfffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 'Apple Inc.', 8006927753);
-    EXCEPTION 
-        WHEN DUP_VAL_ON_INDEX THEN
-            DBMS_OUTPUT.PUT_LINE('Duplicate seller Apple Inc or phone number in use, not inserted.');
-        WHEN OTHERS THEN
-            DBMS_OUTPUT.PUT_LINE('Failed to insert due to constraint violation or invalid data type.');
-    END;
-    
-    
 
-END;
-/
-
+COMMIT;

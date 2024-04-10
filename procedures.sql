@@ -121,6 +121,7 @@ CREATE OR REPLACE PROCEDURE create_return (
     e_invalid_order_product_id_format EXCEPTION;
     e_invalid_reason_format EXCEPTION;
     e_invalid_quantity_returned_format EXCEPTION;
+    e_reason_exceeds_limit EXCEPTION;
  
 BEGIN
     -- Output debug message
@@ -195,6 +196,17 @@ BEGIN
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
             RAISE e_invalid_order_product_id;
+    END;
+
+    -- Check if reason exceeds character limit
+    BEGIN
+        IF LENGTH(reason) > 500 THEN
+            RAISE e_reason_exceeds_limit;
+        END IF;
+    EXCEPTION
+        WHEN e_reason_exceeds_limit THEN
+            DBMS_OUTPUT.PUT_LINE('Reason exceeds character limit.');
+            RAISE;
     END;
     
     
@@ -276,6 +288,8 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('Invalid order product ID.');
     WHEN e_invalid_store_id THEN
         DBMS_OUTPUT.PUT_LINE('Invalid store ID.');
+    WHEN e_reason_exceeds_limit THEN
+        DBMS_OUTPUT.PUT_LINE('Reason exceeds character limit.');
     WHEN OTHERS THEN
         DBMS_OUTPUT.PUT_LINE('Procedure execution: Error - ' || SQLERRM);
 END;
@@ -302,11 +316,12 @@ CREATE OR REPLACE PROCEDURE submit_feedback(
   e_store_name_too_long EXCEPTION;
   e_email_too_long EXCEPTION;
   e_empty_store_name EXCEPTION;
-  e_review_format_error EXCEPTION; 
   e_rating_conversion_error EXCEPTION;
   e_PHN_conversion_error EXCEPTION;
   e_rating_empty EXCEPTION;
   e_rev_conversion_error EXCEPTION;
+  e_review_format_error EXCEPTION; -- New exception for review format validation
+  e_review_too_long EXCEPTION;
 
 BEGIN
   
@@ -341,7 +356,12 @@ BEGIN
     RAISE e_invalid_email_format;
   END IF;
 
-  -- validation for p_review to check it is not a single integer.
+  -- Validate the review length.
+  IF LENGTH(p_review) > 500 THEN
+    RAISE e_review_too_long;
+  END IF;
+
+  -- New validation for p_review to check it is not a single integer.
   IF LENGTH(p_review) = 1 AND REGEXP_LIKE(p_review, '^\d$') THEN
     RAISE e_rev_conversion_error;
   END IF;
@@ -417,6 +437,9 @@ EXCEPTION
   WHEN e_rating_empty THEN
     DBMS_OUTPUT.PUT_LINE('Rating cannot be empty.');
     ROLLBACK;
+  WHEN e_review_too_long THEN
+    DBMS_OUTPUT.PUT_LINE('Review exceeds the maximum length allowed.');
+    ROLLBACK;
   WHEN OTHERS THEN
     DBMS_OUTPUT.PUT_LINE('Warning Incorrect data entered check the da ');
     ROLLBACK;
@@ -463,6 +486,22 @@ CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
 ) AS 
     invalid_category_exception EXCEPTION;
 BEGIN
+
+    -- Check if name length exceeds the maximum allowed length (assuming 50 characters)
+    IF LENGTH(name) > 50 THEN
+        RAISE name_length_exceeded;
+    END IF;
+
+    -- Check if category_name length exceeds the maximum allowed length (assuming 50 characters)
+    IF LENGTH(category_name) > 50 THEN
+        RAISE category_name_length_exceeded;
+    END IF;
+
+    -- Check if seller_id length exceeds the maximum allowed length (assuming 10 characters)
+    IF LENGTH(seller_id) > 10 THEN
+        RAISE seller_id_length_exceeded;
+    END IF;
+
     -- check if category exists   
     SELECT COUNT(1)INTO category_if_exists FROM CATEGORY WHERE name=category_name;
     IF category_if_exists=0 THEN
@@ -497,6 +536,12 @@ EXCEPTION
         dbms_output.put_line('Primary/Unique key violation occured. Make sure to enter correct values.');
     WHEN invalid_category_exception THEN
         dbms_output.put_line('Category does not exist. Enter valid category');
+    WHEN name_length_exceeded THEN
+        dbms_output.put_line('Product name length exceeds the maximum allowed length.');
+    WHEN category_name_length_exceeded THEN
+        dbms_output.put_line('Category name length exceeds the maximum allowed length.');
+    WHEN seller_id_length_exceeded THEN
+        dbms_output.put_line('Seller ID length exceeds the maximum allowed length.');
     WHEN OTHERS THEN -- catch all other exceptions
         IF sqlcode = -2291 THEN -- Handle foreign key constraint violation
             dbms_output.put_line('Foreign key constraint violation occurred.');
@@ -514,6 +559,13 @@ CREATE OR REPLACE PROCEDURE Get_Feedback_For_Store(
     p_store_name IN VARCHAR2)
 AS
 BEGIN
+
+    -- Check if the length of p_store_name exceeds the maximum allowed length (assuming 50 characters)
+    IF LENGTH(p_store_name) > 50 THEN
+        DBMS_OUTPUT.PUT_LINE('Store name exceeds the maximum length of 50 characters.');
+        RETURN; -- Exit the procedure without executing the query
+    END IF;
+
     FOR rec IN (SELECT f.customer_rating, f.review
                 FROM Feedback f
                 JOIN Store s ON f.store_id = s.id
