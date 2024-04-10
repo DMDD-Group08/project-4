@@ -51,3 +51,19 @@ ORDER BY
     "Year",
     "MonthName",
     "SellerName";
+
+
+-- Creates or replaces a view named view_store_ratings_comparison
+CREATE OR REPLACE VIEW view_store_ratings_comparison AS
+SELECT
+    -- Selects distinct store IDs to avoid duplicate rows
+    Distinct f.store_id AS "Store_ID",
+    -- Calculates the average customer rating for each store
+    AVG(f.customer_rating) OVER (PARTITION BY f.store_id) AS "Store_Average_Rating",
+    -- Calculates the overall average customer rating across all stores
+    AVG(f.customer_rating) OVER () AS "Overall_Average_Rating"
+FROM
+    -- Specifies the feedback table as the source of the data
+    feedback f
+-- Orders the result by store ID for better readability
+ORDER BY store_id;
