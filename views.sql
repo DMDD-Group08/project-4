@@ -242,3 +242,39 @@ SELECT op.id AS Order_product_id_,
 FROM order_product op
 LEFT JOIN "RETURN" r ON op.id = r.order_product_id
 WHERE r.refund_status IS NULL OR r.refund_status <> 'REJECTED';
+
+
+--Report for viewing processing fee collected
+CREATE VIEW processing_fees_by_year_month AS
+SELECT
+    TO_CHAR(return_date, 'YYYY') AS year,
+    TO_CHAR(return_date, 'MM') AS month,
+    SUM(processing_fee) AS total_processing_fee
+FROM
+    return
+GROUP BY
+    TO_CHAR(return_date, 'YYYY'),
+    TO_CHAR(return_date, 'MM');
+
+
+--seller wise returned products
+
+CREATE VIEW seller_returned_products AS
+SELECT
+    s.id AS seller_id,
+    s.name AS seller_name,
+    p.id AS product_id,
+    p.name AS product_name,
+    r.return_date,
+    r.reason,
+    r.refund_status,
+    r.quantity_returned,
+    r.processing_fee
+FROM
+    seller s
+JOIN
+    product p ON s.id = p.seller_id
+JOIN
+    order_product op ON p.id = op.product_id
+JOIN
+    return r ON op.id = r.order_product_id;
