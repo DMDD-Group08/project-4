@@ -284,15 +284,17 @@ END;
 
 -------------------- submit_feedback procedure
 CREATE OR REPLACE PROCEDURE submit_feedback(
-    p_store_name IN VARCHAR2,
+    p_store_phone IN VARCHAR2,
     p_customer_email IN VARCHAR2,
-    p_customer_rating IN NUMBER,
+    p_customer_rating IN VARCHAR2,
     p_review IN VARCHAR2
 ) AS
+  v_customer_rating NUMBER; 
   v_store_id VARCHAR2(10);
   v_customer_id VARCHAR2(10);
   v_feedback_exists NUMBER;
   v_accepted_return_exists NUMBER;
+  v_store_phone NUMBER;
 
   -- Custom exceptions
   e_invalid_rating EXCEPTION;
@@ -300,20 +302,37 @@ CREATE OR REPLACE PROCEDURE submit_feedback(
   e_store_name_too_long EXCEPTION;
   e_email_too_long EXCEPTION;
   e_empty_store_name EXCEPTION;
-  e_review_format_error EXCEPTION; -- New exception for review format validation
+  e_review_format_error EXCEPTION; 
+  e_rating_conversion_error EXCEPTION;
+  e_PHN_conversion_error EXCEPTION;
+  e_rating_empty EXCEPTION;
+  e_rev_conversion_error EXCEPTION;
 
 BEGIN
+  
+  BEGIN
+    v_customer_rating := TO_NUMBER(p_customer_rating);
+  EXCEPTION
+    WHEN VALUE_ERROR THEN
+      RAISE e_rating_conversion_error;
+  END;
+  -- Check if rating is empty or null
+  IF TRIM(p_customer_rating) IS NULL OR p_customer_rating = '' THEN
+    RAISE e_rating_empty;
+  END IF;
+ 
   -- Validate the customer rating is between 1 and 5.
-  IF p_customer_rating < 1 OR p_customer_rating > 5 THEN
+  IF TO_NUMBER(p_customer_rating) < 1 OR TO_NUMBER(p_customer_rating) > 5 THEN
     RAISE e_invalid_rating;
   END IF;
 
-  -- Validate the store name is not empty and does not exceed expected length.
-  IF TRIM(p_store_name) IS NULL THEN
-    RAISE e_empty_store_name;
-  ELSIF LENGTH(p_store_name) > 20 THEN -- 20 is the max length
-    RAISE e_store_name_too_long;
-  END IF;
+  BEGIN
+    v_store_phone := TO_NUMBER(p_store_phone);
+  EXCEPTION
+    WHEN VALUE_ERROR THEN
+      RAISE e_PHN_conversion_error;
+  END;
+
 
   -- Validate the customer email is not empty, does not exceed expected length, and is in a valid format.
   IF LENGTH(p_customer_email) > 30 THEN -- 30 is the max length for email
@@ -322,16 +341,15 @@ BEGIN
     RAISE e_invalid_email_format;
   END IF;
 
-  -- New validation for p_review to check it is not a single integer.
+  -- validation for p_review to check it is not a single integer.
   IF LENGTH(p_review) = 1 AND REGEXP_LIKE(p_review, '^\d$') THEN
-    RAISE e_review_format_error;
+    RAISE e_rev_conversion_error;
   END IF;
 
   -- Lookup the store_id using the store name.
   SELECT id INTO v_store_id
   FROM store
-  WHERE name = p_store_name;
-
+  WHERE contact_no = p_store_phone;
   -- Lookup the customer_id using the customer email address.
   SELECT id INTO v_customer_id
   FROM customer
@@ -357,18 +375,18 @@ BEGIN
   IF v_feedback_exists = 0 THEN
     -- Insert new feedback if it does not exist.
     INSERT INTO feedback (id, customer_id, store_id, customer_rating, review)
-    VALUES (feedback_id_seq.NEXTVAL, v_customer_id, v_store_id, p_customer_rating, p_review);
+    VALUES (FEEDBACK_ID_SEQ.NEXTVAL, v_customer_id, v_store_id, TO_NUMBER(p_customer_rating), p_review);
   ELSE
     -- Update existing feedback.
     UPDATE feedback
-    SET customer_rating = p_customer_rating, review = p_review
+    SET customer_rating = TO_NUMBER(p_customer_rating), review = p_review
     WHERE store_id = v_store_id AND customer_id = v_customer_id;
   END IF;
 
   COMMIT;
 EXCEPTION
   WHEN NO_DATA_FOUND THEN
-    DBMS_OUTPUT.PUT_LINE('Store name or customer email address not found.');
+    DBMS_OUTPUT.PUT_LINE('Store phone number or customer email address not found.');
     ROLLBACK;
   WHEN e_invalid_rating THEN
     DBMS_OUTPUT.PUT_LINE('Customer rating must be between 1 and 5.');
@@ -387,14 +405,24 @@ EXCEPTION
     ROLLBACK;
   WHEN e_review_format_error THEN
     DBMS_OUTPUT.PUT_LINE('Review cannot be a integer.');
+  WHEN e_rating_conversion_error THEN
+    DBMS_OUTPUT.PUT_LINE('Rating conversion error: Rating must be a numeric value.');
+    ROLLBACK;
+  WHEN e_PHN_conversion_error THEN
+    DBMS_OUTPUT.PUT_LINE('Phone number must be a numeric value.');
+    ROLLBACK;
+  WHEN e_rev_conversion_error THEN
+    DBMS_OUTPUT.PUT_LINE('Feedback cannot be a numeric integer.');
+    ROLLBACK;
+  WHEN e_rating_empty THEN
+    DBMS_OUTPUT.PUT_LINE('Rating cannot be empty.');
     ROLLBACK;
   WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Warning Incorrect data entered check the da ');
     ROLLBACK;
     RAISE;
 END;
 /
-
-
 
 
 ----------------- update_store_availability procedure
@@ -501,6 +529,66 @@ EXCEPTION
 END;
 /
 
+-- PROCEDURE TO VIEW SUCCESSFUL RETURNS TO GIVE FEEDBACK TO STORE
+CREATE OR REPLACE PROCEDURE get_returned_products (
+    p_email IN VARCHAR2
+) AS
+BEGIN
+    -- Input validation
+    IF p_email IS NULL OR TRIM(p_email) = '' THEN
+        DBMS_OUTPUT.PUT_LINE('Email address cannot be null or empty.');
+    END IF;
+    
+    -- Simple format check; could be expanded for more rigorous pattern matching
+    IF NOT REGEXP_LIKE(p_email, '^[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+\.[a-zA-Z]{2,4}$') THEN
+        DBMS_OUTPUT.PUT_LINE('Email address format is not valid.');
+    END IF;
+
+    -- Updated headers to include Product ID and Store Name
+    DBMS_OUTPUT.PUT_LINE('Product ID | Store Name      | Product Name | Status     | Request Accepted |');
+    DBMS_OUTPUT.PUT_LINE('-----------|-----------------|--------------|------------|------------------|');
+
+    FOR r IN (
+        SELECT 
+            p.id AS product_id, 
+            s.name AS store_name,
+            p.name AS product_name,
+            r.refund_status AS refund_status,
+            r.request_accepted AS request_accepted
+            
+        FROM 
+            customer c
+            JOIN customer_order co ON c.id = co.customer_id
+            JOIN order_product op ON co.id = op.customer_order_id
+            JOIN product p ON op.product_id = p.id
+            JOIN "RETURN" r ON op.id = r.order_product_id
+            JOIN store s ON r.store_id = s.id -- Joining store table to get store name
+        WHERE 
+            c.email_id = p_email
+            )
+    LOOP
+        -- Output with store name using RPAD for alignment
+        DBMS_OUTPUT.PUT_LINE(
+            RPAD(r.product_id, 10) || ' | ' || 
+            RPAD(r.store_name, 15) || ' | ' || 
+            RPAD(r.product_name, 12) || ' | ' || 
+            RPAD(r.refund_status, 10) || ' | ' || 
+            RPAD(CASE WHEN r.request_accepted = 1 THEN 'SUCCESSFUL' ELSE 'REJECTED' END, 16)
+        );
+    END LOOP;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No products found for the given email.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An error occurred: ' || SQLERRM);
+END;
+/
+
+
+
+
+    
 -- CUSTOMER_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.CREATE_RETURN TO CUSTOMER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.SUBMIT_FEEDBACK TO CUSTOMER_USER;
