@@ -555,32 +555,49 @@ EXCEPTION
 END;
 /
 
--- Get_Feedback_For_Store FUNCTION
 CREATE OR REPLACE PROCEDURE Get_Feedback_For_Store(
-    p_store_name IN VARCHAR2)
+    p_contact_no_str IN VARCHAR2)
 AS
+    v_contact_no NUMBER;
 BEGIN
-
-    -- Check if the length of p_store_name exceeds the maximum allowed length (assuming 50 characters)
-    IF LENGTH(p_store_name) > 50 THEN
-        DBMS_OUTPUT.PUT_LINE('Store name exceeds the maximum length of 50 characters.');
+    -- Attempt to convert string to NUMBER for contact_no validation
+    BEGIN
+        v_contact_no := TO_NUMBER(p_contact_no_str);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- Validate the converted contact number length (assuming 10 digits for simplicity)
+    IF LENGTH(TRIM(TO_CHAR(v_contact_no))) != 10 THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid contact number. Please provide a 10-digit contact number.');
         RETURN; -- Exit the procedure without executing the query
     END IF;
 
-    FOR rec IN (SELECT f.customer_rating, f.review
-                FROM Feedback f
-                JOIN Store s ON f.store_id = s.id
-                WHERE s.name = p_store_name)
-    LOOP
-        DBMS_OUTPUT.PUT_LINE('Rating: ' || rec.customer_rating || ', Review: ' || rec.review);
-    END LOOP;
+    -- Fetch and display feedback for the store matching the validated contact number
+    DECLARE
+        feedback_found BOOLEAN := FALSE;
+    BEGIN
+        FOR rec IN (SELECT f.customer_rating, f.review
+                    FROM Feedback f
+                    JOIN Store s ON f.store_id = s.id
+                    WHERE s.contact_no = v_contact_no)
+        LOOP
+            feedback_found := TRUE;
+            DBMS_OUTPUT.PUT_LINE('Rating: ' || rec.customer_rating || ', Review: ' || rec.review);
+        END LOOP;
+        
+        IF NOT feedback_found THEN
+            DBMS_OUTPUT.PUT_LINE('No feedback found for the specified contact number.');
+        END IF;
+    END;
 EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        DBMS_OUTPUT.PUT_LINE('No feedback found for the specified store.');
     WHEN OTHERS THEN
         RAISE;
 END;
 /
+
 
 -- PROCEDURE TO VIEW SUCCESSFUL RETURNS TO GIVE FEEDBACK TO STORE
 CREATE OR REPLACE PROCEDURE get_returned_products (
