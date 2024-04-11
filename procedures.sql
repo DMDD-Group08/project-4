@@ -209,16 +209,14 @@ BEGIN
             RAISE;
     END;
     
-    
+
     -- Check if return is valid based on days remaining to return
-    SELECT COUNT(*)
+    SELECT DAYS_REMAINING_TO_RETURN
     INTO l_days_remaining
-    FROM NUMBER_OF_RETURNABLE_DAYS
-    WHERE ORDER_ID = (
-        SELECT customer_order_id
-        FROM ORDER_PRODUCT
-        WHERE id = order_product_id
-    );
+    FROM NUMBER_OF_RETURNABLE_DAYS nr
+    WHERE nr.ORDER_PRODUCT_ID_ = order_product_id;
+
+
     
     IF l_days_remaining > 0 THEN
         -- Proceed with return creation
@@ -485,6 +483,9 @@ CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
     seller_id IN product.seller_id%TYPE
 ) AS 
     invalid_category_exception EXCEPTION;
+    name_length_exceeded EXCEPTION;
+    category_name_length_exceeded EXCEPTION;
+    seller_id_length_exceeded EXCEPTION;
 BEGIN
 
     -- Check if name length exceeds the maximum allowed length (assuming 50 characters)
@@ -638,7 +639,120 @@ END;
 /
 
 
+-- 1. To filter accepted returns list based on specific customer email
 
+CREATE OR REPLACE PROCEDURE filter_accepted_returns (
+    email_id IN VARCHAR2
+) AS
+    -- Declare variables
+    v_seller_name accepted_returns_view.seller_name%TYPE;
+    v_product_name accepted_returns_view.product_name%TYPE;
+    v_product_id accepted_returns_view.product_id%TYPE;
+    v_return_reason accepted_returns_view.return_reason%TYPE;
+    v_return_date accepted_returns_view.return_date%TYPE;
+    v_order_product_id accepted_returns_view.order_product_id%TYPE;
+    v_quantity_returned accepted_returns_view.quantity_returned%TYPE;
+    v_store_id accepted_returns_view.store_id%TYPE;
+    v_customer_id customer.id%TYPE;
+
+BEGIN
+    -- Get customer_id from email_id
+    SELECT id INTO v_customer_id FROM customer WHERE email_id = email_id;
+
+    -- Fetch data into variables directly
+    SELECT 
+        arv.seller_name,
+        arv.product_name,
+        arv.product_id,
+        arv.return_reason,
+        arv.return_date,
+        arv.order_product_id,
+        arv.quantity_returned,
+        arv.store_id
+    INTO 
+        v_seller_name,
+        v_product_name,
+        v_product_id,
+        v_return_reason,
+        v_return_date,
+        v_order_product_id,
+        v_quantity_returned,
+        v_store_id
+    FROM 
+        accepted_returns_view arv
+    INNER JOIN 
+        customer_order co ON co.id = arv.order_product_id
+    INNER JOIN 
+        order_product op ON co.id = op.customer_order_id
+    WHERE 
+        co.customer_id = v_customer_id;
+
+    -- Display the fetched data
+    DBMS_OUTPUT.PUT_LINE('Seller Name: ' || v_seller_name);
+    DBMS_OUTPUT.PUT_LINE('Product Name: ' || v_product_name);
+    DBMS_OUTPUT.PUT_LINE('Product ID: ' || v_product_id);
+    DBMS_OUTPUT.PUT_LINE('Return Reason: ' || v_return_reason);
+    DBMS_OUTPUT.PUT_LINE('Return Date: ' || TO_CHAR(v_return_date, 'YYYY-MM-DD'));
+    DBMS_OUTPUT.PUT_LINE('Order Product ID: ' || v_order_product_id);
+    DBMS_OUTPUT.PUT_LINE('Quantity Returned: ' || v_quantity_returned);
+    DBMS_OUTPUT.PUT_LINE('Store ID: ' || v_store_id);
+    DBMS_OUTPUT.PUT_LINE('----------------------');
+
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No accepted returns found for the specified customer.');
+    WHEN OTHERS THEN
+        -- Handle exceptions
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+/
+
+
+-- 2. Filtered stores for feedback based on customer email
+
+CREATE OR REPLACE PROCEDURE filter_store_for_feedback (
+    email_id IN VARCHAR2
+) AS
+    -- Declare variables
+    v_store_id store_for_feedback.store_id%TYPE;
+    v_product_name store_for_feedback.product_name%TYPE;
+    v_customer_order_id store_for_feedback.customer_order_id%TYPE;
+    v_customer_id customer.id%TYPE;
+
+BEGIN
+    -- Get customer_id from email_id
+    SELECT id INTO v_customer_id FROM customer WHERE email_id = email_id;
+
+    -- Fetch data into variables directly
+    SELECT 
+        sff.store_id,
+        sff.product_name,
+        sff.customer_order_id
+    INTO 
+        v_store_id,
+        v_product_name,
+        v_customer_order_id
+    FROM 
+        store_for_feedback sff
+    INNER JOIN 
+        customer_order co ON sff.customer_order_id = co.id
+    WHERE 
+        co.customer_id = v_customer_id;
+
+    -- Display the fetched data
+    DBMS_OUTPUT.PUT_LINE('Store ID: ' || v_store_id);
+    DBMS_OUTPUT.PUT_LINE('Product Name: ' || v_product_name);
+    DBMS_OUTPUT.PUT_LINE('Customer Order ID: ' || v_customer_order_id);
+    
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No records found for the specified customer.');
+    WHEN OTHERS THEN
+        -- Handle exceptions
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+/
 
     
 -- CUSTOMER_USER
