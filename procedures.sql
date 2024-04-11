@@ -598,8 +598,8 @@ BEGIN
     END IF;
 
     -- Updated headers to include Product ID and Store Name
-    DBMS_OUTPUT.PUT_LINE('Product ID | Store Name      | Product Name | Status     | Request Accepted |');
-    DBMS_OUTPUT.PUT_LINE('-----------|-----------------|--------------|------------|------------------|');
+    DBMS_OUTPUT.PUT_LINE('Product ID | Store Name      | Product Name |    Refund Status  | Request Accepted |');
+    DBMS_OUTPUT.PUT_LINE('-----------|-----------------|--------------|-------------------|------------------|');
 
     FOR r IN (
         SELECT 
@@ -637,6 +637,46 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('An error occurred: ' || SQLERRM);
 END;
 /
+
+-- Procedure to view store rating
+
+CREATE OR REPLACE PROCEDURE get_store_rating(p_contact_no_str IN VARCHAR2) AS
+    v_contact_no NUMBER;
+    v_store_name store.name%TYPE;
+    v_store_rating NUMBER;
+BEGIN
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        v_contact_no := TO_NUMBER(p_contact_no_str);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- Proceed with fetching the store rating using the converted contact number
+    BEGIN
+        SELECT s.name, vsr."Store_Rating" INTO v_store_name, v_store_rating
+        FROM store s
+        JOIN view_store_ratings vsr ON s.id = vsr."Store_ID"
+        WHERE s.contact_no = v_contact_no;
+        
+        DBMS_OUTPUT.PUT_LINE('Store Name: ' || v_store_name || ' has a rating of: ' || v_store_rating);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No store or rating found for the given contact number.');
+        WHEN TOO_MANY_ROWS THEN
+            DBMS_OUTPUT.PUT_LINE('More than one store found for the given contact number, or data inconsistency.');
+    END;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An unexpected error occurred: check input');
+END;
+/
+
+
+
 
 
 -- 1. To filter accepted returns list based on specific customer email
