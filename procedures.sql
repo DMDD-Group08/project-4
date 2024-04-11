@@ -661,6 +661,10 @@ CREATE OR REPLACE PROCEDURE get_store_rating(p_contact_no_str IN VARCHAR2) AS
     v_contact_no NUMBER;
     v_store_name store.name%TYPE;
     v_store_rating NUMBER;
+    v_address_line store.address_line%TYPE;
+    v_city store.city%TYPE;
+    v_state store.state%TYPE;
+    v_zip_code store.zip_code%TYPE;
 BEGIN
     -- Attempt to convert string to NUMBER
     BEGIN
@@ -671,14 +675,17 @@ BEGIN
             RETURN;
     END;
     
-    -- Proceed with fetching the store rating using the converted contact number
+    -- Proceed with fetching the store details and rating using the converted contact number
     BEGIN
-        SELECT s.name, vsr."Store_Rating" INTO v_store_name, v_store_rating
+        SELECT s.name, s.address_line, s.city, s.state, s.zip_code, vsr."Store_Rating" 
+        INTO v_store_name, v_address_line, v_city, v_state, v_zip_code, v_store_rating
         FROM store s
         JOIN view_store_ratings vsr ON s.id = vsr."Store_ID"
         WHERE s.contact_no = v_contact_no;
         
-        DBMS_OUTPUT.PUT_LINE('Store Name: ' || v_store_name || ' has a rating of: ' || v_store_rating);
+        DBMS_OUTPUT.PUT_LINE('Store Name: ' || v_store_name || ', Address: ' || v_address_line || ', ' || 
+                             v_city || ', ' || v_state || ' ' || v_zip_code || 
+                             ' has a rating of: ' || v_store_rating);
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
             DBMS_OUTPUT.PUT_LINE('No store or rating found for the given contact number.');
@@ -691,6 +698,7 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('An unexpected error occurred: check input');
 END;
 /
+
 
 
 
