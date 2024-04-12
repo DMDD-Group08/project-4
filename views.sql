@@ -145,6 +145,7 @@ ORDER BY 3;
 
 
 -- Price Charged
+-- Business manager view
 
 CREATE OR REPLACE VIEW product_discount_association AS
 SELECT distinct p.id AS product_id,
@@ -157,6 +158,8 @@ FROM product p
                        JOIN customer_order o ON op.customer_order_id = o.id where o.order_date BETWEEN d.start_date AND d.end_date;
 
  -- view for per unit product
+ -- Customer specific view
+
 CREATE OR REPLACE VIEW order_product_actual_price_per_unit AS
 SELECT op.id AS order_product_id,
        op.customer_order_id,
@@ -172,6 +175,8 @@ JOIN product_discount_association pda ON op.product_id = pda.product_id;
 
 
 -- total price for all units
+-- Customer specific view
+
 CREATE OR REPLACE VIEW order_total_price_per_unit AS
 SELECT customer_order_id,
        SUM(price_charged * quantity) AS total_price
@@ -238,10 +243,42 @@ LEFT JOIN "RETURN" r ON op.id = r.order_product_id
 WHERE r.refund_status IS NULL OR r.refund_status <> 'REJECTED';
 
 
+--Report for viewing processing fee collected
+-- Business Manager
+
+CREATE OR REPLACE VIEW processing_fees_by_year_month AS
+SELECT
+    TO_CHAR(return_date, 'YYYY') AS year,
+    TO_CHAR(return_date, 'MM') AS month,
+    SUM(processing_fee) AS total_processing_fee
+FROM
+    return
+GROUP BY
+    TO_CHAR(return_date, 'YYYY'),
+    TO_CHAR(return_date, 'MM');
 
 
 
-
+CREATE OR REPLACE VIEW seller_returned_products AS
+SELECT
+    s.id AS seller_id,
+    s.name AS seller_name,
+    p.id AS product_id,
+    p.name AS product_name,
+    r.return_date,
+    r.reason,
+    r.refund_status,
+    r.quantity_returned,
+    r.processing_fee
+FROM
+    seller s
+JOIN
+    product p ON s.id = p.seller_id
+JOIN
+    order_product op ON p.id = op.product_id
+JOIN
+    return r ON op.id = r.order_product_id;
+    
 -- store list
 -- Business manager, Customer specific view
 
@@ -267,6 +304,8 @@ GROUP BY store_id;
 GRANT SELECT ON  store_for_feedback TO CUSTOMER_USER;
 GRANT SELECT ON store_average_rating_view TO CUSTOMER_USER;
 GRANT SELECT ON accepted_returns_view TO CUSTOMER_USER;
+GRANT SELECT ON order_product_actual_price_per_unit TO CUSTOMER_USER;
+GRANT SELECT ON order_total_price_per_unit TO CUSTOMER_USER;
 
 -- STORE_USER
 GRANT SELECT ON store_average_rating_view TO STORE_USER;
