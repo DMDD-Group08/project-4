@@ -618,25 +618,25 @@ END;
 
 ------------------ Allows seller to add products to the PRODUCT Entity after checking for category ------------
 CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
-    name      IN product.name%TYPE,
-    price         IN varchar,
-    mfg_date  IN product.mfg_date%TYPE,
-    exp_date           IN product.exp_date%TYPE,
-    category_name IN category.name%TYPE,
-    seller_contact IN varchar
+    name             IN product.name%TYPE,
+    price            IN varchar,
+    mfg_date         IN product.mfg_date%TYPE,
+    exp_date         IN product.exp_date%TYPE,
+    category_name    IN category.name%TYPE,
+    seller_contact   IN varchar
 ) AS 
-    a_price NUMBER(10,2);
-    s_contact_no NUMBER;
-    category_id_ NUMBER;
+    a_price             NUMBER(10,2);
+    s_contact_no        NUMBER;
+    category_id_        NUMBER;
     category_if_exists NUMBER;
-    fetched_seller_id NUMBER;
+    fetched_seller_id   NUMBER;
     seller_contact_if_exists NUMBER;
     
-    invalid_category_exception EXCEPTION;
-    name_length_exceeded EXCEPTION;
+    invalid_category_exception    EXCEPTION;
+    name_length_exceeded          EXCEPTION;
     category_name_length_exceeded EXCEPTION;
-    seller_id_length_exceeded EXCEPTION;
     invalid_seller_contact_exception EXCEPTION;
+    invalid_name_exception       EXCEPTION;
 BEGIN
 
     -- Attempt to convert string to NUMBER
@@ -647,6 +647,12 @@ BEGIN
             DBMS_OUTPUT.PUT_LINE('Invalid price format. Please provide a valid numeric price.');
             RETURN;
     END;
+    
+
+    -- Check if name contains only alphabetic characters
+    IF NOT REGEXP_LIKE(name, '^[a-zA-Z]+$') THEN
+        RAISE invalid_name_exception;
+    END IF;
     
     -- Check if name length exceeds the maximum allowed length (assuming 50 characters)
     IF LENGTH(name) > 50 THEN
@@ -667,9 +673,9 @@ BEGIN
             RETURN;
     END;
     
-    -- if seller_contact does not exists, raise exception   
-    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
-    IF seller_contact_if_exists=0 THEN
+    -- if seller_contact does not exist, raise exception   
+    SELECT COUNT(1) INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
+    IF seller_contact_if_exists = 0 THEN
         RAISE invalid_seller_contact_exception;
     END IF;
     
@@ -677,13 +683,13 @@ BEGIN
     SELECT ID INTO fetched_seller_id FROM SELLER WHERE CONTACT_NO = s_contact_no;
 
     -- check if category exists   
-    SELECT COUNT(1)INTO category_if_exists FROM CATEGORY WHERE UPPER(name)=UPPER(category_name);
-    IF category_if_exists=0 THEN
+    SELECT COUNT(1) INTO category_if_exists FROM CATEGORY WHERE UPPER(name) = UPPER(category_name);
+    IF category_if_exists = 0 THEN
         RAISE invalid_category_exception;
     END IF;   
     
     -- if category exists, fetch category_id    
-    SELECT id into category_id_ from category where UPPER(name)=UPPER(category_name);
+    SELECT id INTO category_id_ FROM category WHERE UPPER(name) = UPPER(category_name);
     
     -- insert product
     INSERT INTO product (
@@ -707,26 +713,26 @@ BEGIN
     COMMIT;
 EXCEPTION
     WHEN dup_val_on_index THEN
-        dbms_output.put_line('Primary/Unique key violation occured. Make sure to enter correct values.');
+        DBMS_OUTPUT.PUT_LINE('Primary/Unique key violation occurred. Make sure to enter correct values.');
     WHEN invalid_category_exception THEN
-        dbms_output.put_line('Category does not exist. Enter valid category');
+        DBMS_OUTPUT.PUT_LINE('Category does not exist. Enter a valid category.');
     WHEN name_length_exceeded THEN
-        dbms_output.put_line('Product name length exceeds the maximum allowed length.');
+        DBMS_OUTPUT.PUT_LINE('Product name length exceeds the maximum allowed length.');
     WHEN invalid_seller_contact_exception THEN
-        dbms_output.put_line('Invalid seller contact. Please check if contact entered is correct.');
+        DBMS_OUTPUT.PUT_LINE('Invalid seller contact. Please check if the contact entered is correct.');
     WHEN category_name_length_exceeded THEN
-        dbms_output.put_line('Category name length exceeds the maximum allowed length.');
+        DBMS_OUTPUT.PUT_LINE('Category name length exceeds the maximum allowed length.');
+    WHEN invalid_name_exception THEN
+        DBMS_OUTPUT.PUT_LINE('Product name must contain only alphabetic characters.');
     WHEN OTHERS THEN -- catch all other exceptions
         IF sqlcode = -2291 THEN -- Handle foreign key constraint violation
-            dbms_output.put_line('Foreign key constraint violation occurred.');
+            DBMS_OUTPUT.PUT_LINE('Foreign key constraint violation occurred.');
         ELSE
-            dbms_output.put_line('Something else went wrong - '
-                                 || sqlcode
-                                 || ' : '
-                                 || sqlerrm);
+            DBMS_OUTPUT.PUT_LINE('Something else went wrong - ' || SQLCODE || ' : ' || SQLERRM);
         END IF;
 END;
 /
+
 
 -- Allows store user to check for their feedback ---
 
