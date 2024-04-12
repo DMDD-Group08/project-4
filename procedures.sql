@@ -208,8 +208,7 @@ EXCEPTION
 END;
 /
 
-
------------------------- create_return procedure
+------------------------ Procedure to initiate return request for the purchased products ---------------------
 CREATE OR REPLACE PROCEDURE create_return (
     qty OUT NUMBER,
     reason            IN return.reason%TYPE,
@@ -402,7 +401,7 @@ END;
 /
 
 
--------------------- submit_feedback procedure
+-------------------- Allows customer to submit feedback for stores in which they returned the products ------------------
 CREATE OR REPLACE PROCEDURE submit_feedback(
     p_store_phone IN VARCHAR2,
     p_customer_email IN VARCHAR2,
@@ -554,7 +553,7 @@ END;
 /
 
 
------------------ update_store_availability procedure
+----------------- Allows seller to update the availability of their respective stores ----------------
 CREATE OR REPLACE PROCEDURE update_store_availability (
     store_contact_no IN VARCHAR,
     accepting_return IN VARCHAR
@@ -617,7 +616,7 @@ EXCEPTION
 END;
 /
 
------------------- ADD_PRODUCT procedure
+------------------ Allows seller to add products to the PRODUCT Entity after checking for category ------------
 CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
     name      IN product.name%TYPE,
     price         IN varchar,
@@ -729,7 +728,8 @@ EXCEPTION
 END;
 /
 
--- procedure to get feedbacks for particular store
+-- Allows store user to check for their feedback ---
+
 CREATE OR REPLACE PROCEDURE Get_Feedback_For_Store(
     p_contact_no_str IN VARCHAR2)
 AS
@@ -774,7 +774,8 @@ END;
 /
 
 
--- PROCEDURE TO VIEW SUCCESSFUL RETURNS TO GIVE FEEDBACK TO STORE
+-- PROCEDURE WHICH ALLOWS CUSTOMER TO VIEW SUCCESSFUL RETURNS TO GIVE FEEDBACK TO STORE
+
 CREATE OR REPLACE PROCEDURE get_returned_products (
     p_email IN VARCHAR2
 ) AS
@@ -830,7 +831,7 @@ EXCEPTION
 END;
 /
 
--- Procedure to view store rating
+-- Procedure to view store rating of the specific store user
 
 CREATE OR REPLACE PROCEDURE get_store_rating(p_contact_no_str IN VARCHAR2) AS
     v_contact_no NUMBER;
@@ -873,10 +874,6 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('An unexpected error occurred: check input');
 END;
 /
-
-
-
-
 
 
 -- 1. To filter accepted returns list based on specific customer email
@@ -1167,6 +1164,10 @@ END;
 -- CUSTOMER_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.CREATE_RETURN TO CUSTOMER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.SUBMIT_FEEDBACK TO CUSTOMER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.filter_accepted_returns TO CUSTOMER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.filter_store_for_feedback TO CUSTOMER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.get_returned_products TO CUSTOMER_USER;
+
 
 -- STORE_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_STORE_AVAILABILITY TO STORE_USER;
