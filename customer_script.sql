@@ -7,12 +7,11 @@ exec BUSINESS_MANAGER.create_return(:Available_Qty, 'Damaged product', 1, '2001'
 
 
 -- customer views returned products to the store to give feedback to the store
-
+-- params: customer_email 
 exec BUSINESS_MANAGER.get_returned_products('alice@gmail.com');
 
 
 -- customer views the rating of store before making a return
-
 EXECUTE BUSINESS_MANAGER.get_store_rating(8007425877);
 
 

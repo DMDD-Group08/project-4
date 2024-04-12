@@ -2,48 +2,68 @@
 
 --------------------- UPDATE_SELLER_REFUND procedure
 CREATE OR REPLACE PROCEDURE UPDATE_SELLER_REFUND (
-    return_id_if_exists OUT NUMBER,
-    seller_contact_if_exists OUT NUMBER,
-    seller_return_combination_if_exists OUT NUMBER,
-    return_id         IN return.id%TYPE,
+    return_id IN VARCHAR,
     accept_yes_no IN VARCHAR,
-    seller_contact IN seller.contact_no%TYPE  
+    seller_contact IN VARCHAR  
 ) AS
     invalid_input_exception EXCEPTION;
     invalid_contact_exception EXCEPTION;
     invalid_return_id_exception EXCEPTION;
     invalid_seller_return_combination_exception EXCEPTION;
     
+    return_id_if_exists NUMBER;
+    seller_contact_if_exists NUMBER;
+    seller_return_combination_if_exists NUMBER;
+    s_contact_no NUMBER;
+    r_id NUMBER;
     CUSTOMER_RI NUMBER(1);
     PRICE_CHARGED NUMBER(10,2);
 BEGIN
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        r_id := TO_NUMBER(return_id);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid return id format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        s_contact_no := TO_NUMBER(seller_contact);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid seller contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
     
     -- IF accept_yes_no IS RANDOM VALUE, RAISE invalid_input_exception
     IF UPPER(accept_yes_no) NOT IN ('YES', 'NO') THEN
         RAISE invalid_input_exception;
+        RETURN;
     END IF;
-    dbms_output.put_line(1);
     
     -- if return_id does not exists, raise exception   
-    SELECT COUNT(1)INTO return_id_if_exists FROM RETURN WHERE ID=return_id;
+    SELECT COUNT(1)INTO return_id_if_exists FROM RETURN WHERE ID=r_id;
     IF return_id_if_exists=0 THEN
         RAISE invalid_return_id_exception;
+        RETURN;
     END IF;
-    dbms_output.put_line(2);
     
     -- if seller_contact does not exists, raise exception   
-    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = seller_contact;
+    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
     IF seller_contact_if_exists=0 THEN
         RAISE invalid_contact_exception;
+        RETURN;
     END IF;  
-    dbms_output.put_line(3);
     
     -- if seller_return_id does not exists, raise exception   
-    SELECT COUNT(1) INTO seller_return_combination_if_exists FROM CHECK_APPROVED_RETURNS_BY_SYSTEM WHERE RETURN_ID=return_id AND SELLER_CONTACT=seller_contact;
+    SELECT COUNT(1) INTO seller_return_combination_if_exists FROM CHECK_APPROVED_RETURNS_BY_SYSTEM WHERE RETURN_ID = r_id AND SELLER_CONTACT = s_contact_no;
+    
     IF seller_return_combination_if_exists=0 THEN
         RAISE invalid_seller_return_combination_exception;
+        RETURN;
     END IF;    
-    dbms_output.put_line(4);
     
     -- UPDATE REFUND_STATUS BASED ON IF SELLER ACCEPTS/REJECTS THE RETURN
     UPDATE RETURN
@@ -53,10 +73,14 @@ BEGIN
             WHEN UPPER(accept_yes_no) = 'NO' THEN 'REJECTED'
         END
     WHERE
-        id = return_id;
-        
+        id = r_id;
+    COMMIT;
+    dbms_output.put_line('updated refund_status');
+    
     -- UPDATE PROCESSING FEE BASED ON CUSTOMER_RI
     IF UPPER(accept_yes_no) = 'YES' THEN
+        dbms_output.put_line('return accpeted');
+        
         -- FETCHING CUSTOMER_RI OF CUSTOMER BASED ON RETURN_ID
         SELECT CRI.Reliability_Index INTO CUSTOMER_RI
         FROM Customer_Reliability_Index CRI
@@ -64,22 +88,26 @@ BEGIN
         JOIN CUSTOMER_ORDER CO ON CO.CUSTOMER_ID = C.ID
         JOIN ORDER_PRODUCT OP ON OP.CUSTOMER_ORDER_ID = CO.ID
         JOIN RETURN R ON OP.ID = R.ORDER_PRODUCT_ID
-        WHERE R.ID = return_id;
+        WHERE R.ID = r_id;
         
         -- FETCHING PRICE_CHARGED FOR ORDER_PRODUCT ASSOCIATED WITH THE RETURN
         SELECT NVL(RAV.PRICE - (RAV.PRICE * RAV.DISCOUNT_RATE/100), RAV.PRICE) INTO PRICE_CHARGED
         FROM REFUND_AMOUNT_VIEW RAV
         JOIN RETURN R ON R.ORDER_PRODUCT_ID = RAV.ID
-        WHERE R.ID = return_id;
+        WHERE R.ID = r_id;
         
         -- UPDATE PROCESSING_FEE BASED ON CUSTOMER_RI AND PRICE_CHARGED
         UPDATE RETURN
         SET PROCESSING_FEE = (5-CUSTOMER_RI)*(0.01 * PRICE_CHARGED) -- 1% OF PRICE CHARGED IS CALCULATED AS PROCESSING FEE AND MULTIPLED WITH INVERSE OF CUSTOMER_RI
-        WHERE id = return_id;
+        WHERE id = r_id;
+        
+        dbms_output.put_line('processing fee updated');
+        
     ELSE
+        dbms_output.put_line('return rejected');
         UPDATE RETURN
         SET PROCESSING_FEE = 0 -- IF SELLER REJECTS THE RETURN, PROCESSING FEE IS SET TO ZERO
-        WHERE id = return_id;
+        WHERE id = r_id;
     END IF;
         
     COMMIT;
@@ -87,17 +115,22 @@ BEGIN
 EXCEPTION
     WHEN dup_val_on_index THEN
         dbms_output.put_line('Primary/Unique key violation occured. Make sure to enter correct values.');
+        return;
     WHEN invalid_input_exception THEN
         dbms_output.put_line('Invalid input. Please enter either YES or NO.');
+        return;
     WHEN invalid_return_id_exception THEN
         dbms_output.put_line('Invalid return id. Please check if return_id entered is correct.');
+        return;
     WHEN invalid_contact_exception THEN
         dbms_output.put_line('Invalid seller contact no. Please check if seller contact_no entered is correct.');
+        return;
+    WHEN invalid_seller_return_combination_exception THEN
+        dbms_output.put_line('The seller is not asscoisated with the given return');
+        return;
     WHEN OTHERS THEN
-        dbms_output.put_line('Something else went wrong - '
-                             || sqlcode
-                             || ' : '
-                             || sqlerrm);
+        dbms_output.put_line('Something else went wrong - '|| sqlcode|| ' : ' || sqlerrm);
+        return;
 END;
 /
 
@@ -448,19 +481,57 @@ END;
 
 ----------------- update_store_availability procedure
 CREATE OR REPLACE PROCEDURE update_store_availability (
-    store_id         IN store.id%TYPE,
-    accepting_return IN store.accepting_returns%TYPE
+    store_contact_no IN VARCHAR,
+    accepting_return IN VARCHAR
 ) AS
+    s_contact_no NUMBER;
+    accept_return NUMBER;
+    store_contact_if_exists NUMBER;
+    invalid_store_contact_exception EXCEPTION;
+    invalid_accepting_return_input_exception EXCEPTION;
 BEGIN
+    
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        s_contact_no := TO_NUMBER(store_contact_no);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid store contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        accept_return := TO_NUMBER(accepting_return);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid accepting_return format. Please provide either 0(Yes) or 1(No).');
+            RETURN;
+    END;
+    
+    -- IF accept_return IS RANDOM VALUE, RAISE invalid_input_exception
+    IF accept_return NOT IN (0, 1) THEN
+        RAISE invalid_accepting_return_input_exception;
+    END IF;
+    
+    -- if store_contact does not exists, raise exception   
+    SELECT COUNT(1) INTO store_contact_if_exists FROM STORE WHERE CONTACT_NO = s_contact_no;
+    IF store_contact_if_exists=0 THEN
+        RAISE invalid_store_contact_exception;
+    END IF;   
+    
+    -- update availability of store
     UPDATE store
-    SET
-        accepting_returns = accepting_return
-    WHERE
-        id = store_id;
+    SET accepting_returns = accept_return
+    WHERE contact_no = s_contact_no;
 
     COMMIT;
     dbms_output.put_line('Store status updated successfully.');
 EXCEPTION
+    WHEN invalid_accepting_return_input_exception THEN
+        dbms_output.put_line('Invalid input. Please enter either 0 or 1.');
+    WHEN invalid_store_contact_exception THEN
+        dbms_output.put_line('Store with provided contact donnot exist. Enter valid contact.');
     WHEN dup_val_on_index THEN
         dbms_output.put_line('Primary/Unique key violation occured. Make sure to enter correct values.');
     WHEN OTHERS THEN
@@ -473,21 +544,36 @@ END;
 
 ------------------ ADD_PRODUCT procedure
 CREATE OR REPLACE PROCEDURE ADD_PRODUCT (
-    category_id_ OUT product.category_id%TYPE,
-    category_if_exists OUT NUMBER,
     name      IN product.name%TYPE,
-    price         IN product.price%TYPE,
+    price         IN varchar,
     mfg_date  IN product.mfg_date%TYPE,
     exp_date           IN product.exp_date%TYPE,
     category_name IN category.name%TYPE,
-    seller_id IN product.seller_id%TYPE
+    seller_contact IN varchar
 ) AS 
+    a_price NUMBER(10,2);
+    s_contact_no NUMBER;
+    category_id_ NUMBER;
+    category_if_exists NUMBER;
+    fetched_seller_id NUMBER;
+    seller_contact_if_exists NUMBER;
+    
     invalid_category_exception EXCEPTION;
     name_length_exceeded EXCEPTION;
     category_name_length_exceeded EXCEPTION;
     seller_id_length_exceeded EXCEPTION;
+    invalid_seller_contact_exception EXCEPTION;
 BEGIN
 
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        a_price := TO_NUMBER(price);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid price format. Please provide a valid numeric price.');
+            RETURN;
+    END;
+    
     -- Check if name length exceeds the maximum allowed length (assuming 50 characters)
     IF LENGTH(name) > 50 THEN
         RAISE name_length_exceeded;
@@ -498,20 +584,33 @@ BEGIN
         RAISE category_name_length_exceeded;
     END IF;
 
-    -- Check if seller_id length exceeds the maximum allowed length (assuming 10 characters)
-    IF LENGTH(seller_id) > 10 THEN
-        RAISE seller_id_length_exceeded;
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        s_contact_no := TO_NUMBER(seller_contact);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- if seller_contact does not exists, raise exception   
+    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
+    IF seller_contact_if_exists=0 THEN
+        RAISE invalid_seller_contact_exception;
     END IF;
+    
+    -- fetch seller_id based on seller_contact
+    SELECT ID INTO fetched_seller_id FROM SELLER WHERE CONTACT_NO = s_contact_no;
 
     -- check if category exists   
-    SELECT COUNT(1)INTO category_if_exists FROM CATEGORY WHERE name=category_name;
+    SELECT COUNT(1)INTO category_if_exists FROM CATEGORY WHERE UPPER(name)=UPPER(category_name);
     IF category_if_exists=0 THEN
         RAISE invalid_category_exception;
     END IF;   
     
     -- if category exists, fetch category_id    
-    SELECT id into category_id_ from category where name=category_name;
-
+    SELECT id into category_id_ from category where UPPER(name)=UPPER(category_name);
+    
     -- insert product
     INSERT INTO product (
         id,
@@ -524,11 +623,11 @@ BEGIN
     ) VALUES (
         PRODUCT_ID_SEQ.NEXTVAL, -- NEXT AUTOMATED PRODUCT_ID 
         name,
-        price,
+        a_price,
         mfg_date,
         exp_date,
         category_id_,
-        seller_id
+        fetched_seller_id
     );
 
     COMMIT;
@@ -539,10 +638,10 @@ EXCEPTION
         dbms_output.put_line('Category does not exist. Enter valid category');
     WHEN name_length_exceeded THEN
         dbms_output.put_line('Product name length exceeds the maximum allowed length.');
+    WHEN invalid_seller_contact_exception THEN
+        dbms_output.put_line('Invalid seller contact. Please check if contact entered is correct.');
     WHEN category_name_length_exceeded THEN
         dbms_output.put_line('Category name length exceeds the maximum allowed length.');
-    WHEN seller_id_length_exceeded THEN
-        dbms_output.put_line('Seller ID length exceeds the maximum allowed length.');
     WHEN OTHERS THEN -- catch all other exceptions
         IF sqlcode = -2291 THEN -- Handle foreign key constraint violation
             dbms_output.put_line('Foreign key constraint violation occurred.');
@@ -555,6 +654,7 @@ EXCEPTION
 END;
 /
 
+-- procedure to get feedbacks for particular store
 CREATE OR REPLACE PROCEDURE Get_Feedback_For_Store(
     p_contact_no_str IN VARCHAR2)
 AS
@@ -819,7 +919,176 @@ EXCEPTION
 END;
 /
 
+-- procedure for seller to view the return requests that are pending approval
+CREATE OR REPLACE PROCEDURE get_system_approved_returns(seller_contact_no IN VARCHAR2) AS
+    s_contact_no NUMBER;
+    s_return_id return.id%TYPE;
+    s_product_name product.name%TYPE;
+    s_reason return.reason%TYPE;
+    s_return_date return.return_date%TYPE;
+    s_quantity_returned return.quantity_returned%TYPE;
+    seller_contact_if_exists NUMBER;
+    invalid_seller_contact_exception EXCEPTION;
+BEGIN
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        s_contact_no := TO_NUMBER(seller_contact_no);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
     
+    -- if return_id does not exists, raise exception   
+    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
+    IF seller_contact_if_exists = 0 THEN
+        RAISE invalid_seller_contact_exception;
+    END IF;
+    
+    -- Proceed with fetching the return details that needs to be approved/rejected
+    BEGIN
+        SELECT car.RETURN_ID, car.PRODUCT_NAME, car.REASON, car.RETURN_DATE, car.QUANTITY_RETURNED 
+        INTO s_return_id, s_product_name, s_reason, s_return_date, s_quantity_returned
+        FROM CHECK_APPROVED_RETURNS_BY_SYSTEM car
+        WHERE car.SELLER_CONTACT = s_contact_no;
+        
+        DBMS_OUTPUT.PUT_LINE('RETURN ID    | PRODUCT NAME        | REASON                    | RETURN_DATE    | QUANTITY RETURNED |');
+        DBMS_OUTPUT.PUT_LINE('-------------|---------------------|---------------------------|----------------|-------------------|');
+    
+        FOR r IN (
+                SELECT car.RETURN_ID, car.PRODUCT_NAME, car.REASON, car.RETURN_DATE, car.QUANTITY_RETURNED 
+                FROM CHECK_APPROVED_RETURNS_BY_SYSTEM car
+                WHERE car.SELLER_CONTACT = s_contact_no
+                )
+        LOOP
+            -- Output with return request details using RPAD for alignment
+            DBMS_OUTPUT.PUT_LINE(
+                RPAD(r.RETURN_ID, 12) || ' | ' || 
+                RPAD(r.PRODUCT_NAME, 19) || ' | '||
+                RPAD(r.REASON, 25) || ' | '||
+                RPAD(r.RETURN_DATE, 14) || ' | '||
+                RPAD(r.QUANTITY_RETURNED, 17) || ' | ');
+        END LOOP;
+    EXCEPTION
+        WHEN invalid_seller_contact_exception THEN
+            dbms_output.put_line('Invalid seller contact. Please check if contact entered is correct.');
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No returns requests are available to be approved.');
+        WHEN TOO_MANY_ROWS THEN
+            DBMS_OUTPUT.PUT_LINE('More than one store found for the given contact number, or data inconsistency.');
+    END;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An unexpected error occurred: check input');
+END;
+/
+
+-- prcedure for seller to view which products are return with their frequencies
+CREATE OR REPLACE PROCEDURE GET_RETURNED_PRODUCT_ANALYSIS(seller_contact_no IN VARCHAR2) AS
+    s_contact_no NUMBER;
+    seller_contact_if_exists NUMBER;
+    invalid_seller_contact_exception EXCEPTION;
+BEGIN
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        s_contact_no := TO_NUMBER(seller_contact_no);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- if seller_contact_if_exists does not exists, raise exception   
+    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
+    IF seller_contact_if_exists=0 THEN
+        RAISE invalid_seller_contact_exception;
+    END IF;
+    
+    -- Proceed with fetching the return details that needs to be approved/rejected
+    BEGIN        
+        DBMS_OUTPUT.PUT_LINE('PRODUCT NAME | RETURN FREQUENCY    | REASON            |');
+        DBMS_OUTPUT.PUT_LINE('-------------|---------------------|-------------------|');
+    
+        FOR r IN (
+                SELECT rpd.PRODUCT_NAME, rpd.RETURN_FREQUENCY, rpd.REASON
+                FROM RETURNED_PRODUCTS_DETAILS rpd
+                )
+        LOOP
+            -- Output with product name using RPAD for alignment
+            DBMS_OUTPUT.PUT_LINE(
+                RPAD(r.PRODUCT_NAME, 12) || ' | ' || 
+                RPAD(r.RETURN_FREQUENCY, 19) || ' | '||
+                RPAD(r.REASON, 17) || ' | ');
+        END LOOP;
+    EXCEPTION
+        WHEN invalid_seller_contact_exception THEN
+            dbms_output.put_line('Invalid seller contact. Please check if contact entered is correct.');
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No store or rating found for the given contact number.');
+        WHEN TOO_MANY_ROWS THEN
+            DBMS_OUTPUT.PUT_LINE('More than one store found for the given contact number, or data inconsistency.');
+    END;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An unexpected error occurred: check input');
+END;
+/
+
+-- view for seller to check categories available in system
+CREATE OR REPLACE PROCEDURE VIEW_CATEGORIES_AVAILABLE(seller_contact_no IN VARCHAR2) AS
+    s_contact_no NUMBER;
+    seller_contact_if_exists NUMBER;
+    invalid_seller_contact_exception EXCEPTION;
+BEGIN
+    -- Attempt to convert string to NUMBER
+    BEGIN
+        s_contact_no := TO_NUMBER(seller_contact_no);
+    EXCEPTION
+        WHEN VALUE_ERROR THEN
+            DBMS_OUTPUT.PUT_LINE('Invalid contact number format. Please provide a valid numeric contact number.');
+            RETURN;
+    END;
+    
+    -- if return_id does not exists, raise exception   
+    SELECT COUNT(1)INTO seller_contact_if_exists FROM SELLER WHERE CONTACT_NO = s_contact_no;
+    IF seller_contact_if_exists=0 THEN
+        RAISE invalid_seller_contact_exception;
+    END IF;
+    
+    -- Proceed with category view
+    BEGIN
+        DBMS_OUTPUT.PUT_LINE('Category ID | Category Name    |');
+        DBMS_OUTPUT.PUT_LINE('------------|------------------|');
+    
+        -- iterating over the records in view       
+        FOR r IN (
+                SELECT cv.id as category_id, cv.name as category_name
+                FROM category_view cv
+                )
+        LOOP
+            -- Output with category details using RPAD for alignment
+            DBMS_OUTPUT.PUT_LINE(
+                RPAD(r.category_id, 11) || ' | ' || 
+                RPAD(r.category_name, 16) || ' | ');
+        END LOOP;
+        
+    EXCEPTION
+        WHEN invalid_seller_contact_exception THEN
+            dbms_output.put_line('Invalid seller contact. Please check if contact entered is correct.');
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No store or rating found for the given contact number.');
+        WHEN TOO_MANY_ROWS THEN
+            DBMS_OUTPUT.PUT_LINE('More than one seller found for the given contact number, or data inconsistency.');
+    END;
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('An unexpected error occurred: check input');
+END;
+/
+
 -- CUSTOMER_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.CREATE_RETURN TO CUSTOMER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.SUBMIT_FEEDBACK TO CUSTOMER_USER;
@@ -831,3 +1100,6 @@ GRANT EXECUTE ON BUSINESS_MANAGER.Get_Feedback_For_Store TO STORE_USER;
 -- SELLER_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.ADD_PRODUCT TO SELLER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_SELLER_REFUND TO SELLER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.GET_SYSTEM_APPROVED_RETURNS TO SELLER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.GET_RETURNED_PRODUCT_ANALYSIS TO SELLER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.VIEW_CATEGORIES_AVAILABLE TO SELLER_USER;
