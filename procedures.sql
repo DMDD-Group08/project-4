@@ -134,6 +134,81 @@ EXCEPTION
 END;
 /
 
+-------------------------View customer returnable products -------------------------
+
+
+
+
+CREATE OR REPLACE PROCEDURE show_returns_request(
+    p_email VARCHAR2
+) AS
+    -- Variable to hold customer ID
+    v_customer_id VARCHAR2(10);
+    
+
+    -- Cursor declaration for retrieving return details
+    CURSOR c_return_details IS
+        SELECT rt.id AS return_id,
+               rt.reason,
+               rt.return_date,
+               rt.refund_status,
+               rt.quantity_returned,
+               rt.processing_fee,
+               rt.request_accepted,
+               op.product_id,
+               p.name AS product_name, -- Correct the alias if 'prod' was incorrect
+               cst.id AS order_id
+        FROM return rt
+        JOIN order_product op ON rt.order_product_id = op.id
+        JOIN product p ON op.product_id = p.id -- Ensure 'product' is aliased correctly here
+        JOIN customer_order cst ON op.customer_order_id = cst.id
+        WHERE cst.customer_id = v_customer_id;
+
+    -- Variable to hold each row fetched from the cursor
+    v_return_detail c_return_details%ROWTYPE;
+
+BEGIN
+    -- Fetch the customer ID based on the email address
+    SELECT id INTO v_customer_id FROM customer WHERE email_id = p_email;
+
+    -- Opening cursor to fetch data
+    OPEN c_return_details;
+
+    -- Loop through the cursor to fetch and display return details
+    LOOP
+        FETCH c_return_details INTO v_return_detail;
+        EXIT WHEN c_return_details%NOTFOUND;
+
+        -- Displaying return details
+        DBMS_OUTPUT.PUT_LINE('Return ID: ' || v_return_detail.return_id);
+        DBMS_OUTPUT.PUT_LINE('Order ID: ' || v_return_detail.order_id);
+        DBMS_OUTPUT.PUT_LINE('Product ID: ' || v_return_detail.product_id);
+        DBMS_OUTPUT.PUT_LINE('Product Name: ' || v_return_detail.product_name);
+        DBMS_OUTPUT.PUT_LINE('Reason for Return: ' || v_return_detail.reason);
+        DBMS_OUTPUT.PUT_LINE('Return Date: ' || v_return_detail.return_date);
+        DBMS_OUTPUT.PUT_LINE('Refund Status: ' || v_return_detail.refund_status);
+        DBMS_OUTPUT.PUT_LINE('Quantity Returned: ' || v_return_detail.quantity_returned);
+        DBMS_OUTPUT.PUT_LINE('Processing Fee: ' || v_return_detail.processing_fee);
+        DBMS_OUTPUT.PUT_LINE('Request Accepted: ' || CASE WHEN v_return_detail.request_accepted = 1 THEN 'Yes' ELSE 'No' END);
+        DBMS_OUTPUT.PUT_LINE('-----------------------------------');
+    END LOOP;
+
+    -- Close the cursor after use
+    CLOSE c_return_details;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No customer found with that email address.');
+    WHEN OTHERS THEN
+        -- Error handling
+        DBMS_OUTPUT.PUT_LINE('Error encountered, check input');
+        -- Ensure cursor is closed on error
+        IF c_return_details%ISOPEN THEN
+            CLOSE c_return_details;
+        END IF;
+END;
+/
+
+
 ------------------------ create_return procedure
 CREATE OR REPLACE PROCEDURE create_return (
     qty OUT NUMBER,

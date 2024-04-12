@@ -5,10 +5,16 @@ SET SERVEROUTPUT ON;
 VARIABLE Available_Qty NUMBER;
 exec BUSINESS_MANAGER.create_return(:Available_Qty, 'Damaged product', 1, '2001', '5508');
 
+-------- customer views the products that can be returned based on his/her orders
+EXEC show_returns_request('alice@gmahhil.com');
+
 
 -- customer views returned products to the store to give feedback to the store
 -- params: customer_email 
 exec BUSINESS_MANAGER.get_returned_products('alice@gmail.com');
+
+
+
 
 
 -- customer views the rating of store before making a return
