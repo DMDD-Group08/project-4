@@ -89,13 +89,16 @@ BEGIN
         JOIN ORDER_PRODUCT OP ON OP.CUSTOMER_ORDER_ID = CO.ID
         JOIN RETURN R ON OP.ID = R.ORDER_PRODUCT_ID
         WHERE R.ID = r_id;
-        
+        dbms_output.put_line('1111');
+
         -- FETCHING PRICE_CHARGED FOR ORDER_PRODUCT ASSOCIATED WITH THE RETURN
         SELECT NVL(RAV.PRICE - (RAV.PRICE * RAV.DISCOUNT_RATE/100), RAV.PRICE) INTO PRICE_CHARGED
         FROM REFUND_AMOUNT_VIEW RAV
         JOIN RETURN R ON R.ORDER_PRODUCT_ID = RAV.ID
         WHERE R.ID = r_id;
         
+        dbms_output.put_line('22222');
+
         -- UPDATE PROCESSING_FEE BASED ON CUSTOMER_RI AND PRICE_CHARGED
         UPDATE RETURN
         SET PROCESSING_FEE = (5-CUSTOMER_RI)*(0.01 * PRICE_CHARGED) -- 1% OF PRICE CHARGED IS CALCULATED AS PROCESSING FEE AND MULTIPLED WITH INVERSE OF CUSTOMER_RI
@@ -134,10 +137,7 @@ EXCEPTION
 END;
 /
 
--------------------------View customer returnable products -------------------------
-
-
-
+------------------------- View the customer's return requests that are accepted -------------------------
 
 CREATE OR REPLACE PROCEDURE show_returns_request(
     p_email VARCHAR2
@@ -157,7 +157,9 @@ CREATE OR REPLACE PROCEDURE show_returns_request(
                rt.request_accepted,
                op.product_id,
                p.name AS product_name, -- Correct the alias if 'prod' was incorrect
-               cst.id AS order_id
+               cst.id AS order_id,
+                rt.order_product_id AS ORDER_PRODUCT_ID
+
         FROM return rt
         JOIN order_product op ON rt.order_product_id = op.id
         JOIN product p ON op.product_id = p.id -- Ensure 'product' is aliased correctly here
@@ -317,7 +319,7 @@ BEGIN
     END;
     
 
-    -- Check if return is valid based on days remaining to return
+-- Check if return is valid based on days remaining to return
     SELECT DAYS_REMAINING_TO_RETURN
     INTO l_days_remaining
     FROM NUMBER_OF_RETURNABLE_DAYS nr
@@ -374,7 +376,7 @@ BEGIN
     END IF;
     
     -- Output debug message
-    DBMS_OUTPUT.PUT_LINE(' Completed.');
+    DBMS_OUTPUT.PUT_LINE(' Return check completed.');
     
     -- Commit transaction
     COMMIT;
@@ -402,6 +404,7 @@ END;
 
 
 -------------------- Allows customer to submit feedback for stores in which they returned the products ------------------
+
 CREATE OR REPLACE PROCEDURE submit_feedback(
     p_store_phone IN VARCHAR2,
     p_customer_email IN VARCHAR2,
@@ -501,11 +504,15 @@ BEGIN
     -- Insert new feedback if it does not exist.
     INSERT INTO feedback (id, customer_id, store_id, customer_rating, review)
     VALUES (FEEDBACK_ID_SEQ.NEXTVAL, v_customer_id, v_store_id, TO_NUMBER(p_customer_rating), p_review);
+    DBMS_OUTPUT.PUT_LINE('Feedback updated successfully.');
+
   ELSE
     -- Update existing feedback.
     UPDATE feedback
     SET customer_rating = TO_NUMBER(p_customer_rating), review = p_review
     WHERE store_id = v_store_id AND customer_id = v_customer_id;
+    DBMS_OUTPUT.PUT_LINE('Feedback updated successfully.');
+
   END IF;
 
   COMMIT;
@@ -554,6 +561,7 @@ END;
 
 
 ----------------- Allows seller to update the availability of their respective stores ----------------
+
 CREATE OR REPLACE PROCEDURE update_store_availability (
     store_contact_no IN VARCHAR,
     accepting_return IN VARCHAR
@@ -859,10 +867,10 @@ BEGIN
     
     -- Proceed with fetching the store details and rating using the converted contact number
     BEGIN
-        SELECT s.name, s.address_line, s.city, s.state, s.zip_code, vsr."Store_Rating" 
+        SELECT s.name, s.address_line, s.city, s.state, s.zip_code, vsr."Store_Average_Rating" 
         INTO v_store_name, v_address_line, v_city, v_state, v_zip_code, v_store_rating
         FROM store s
-        JOIN view_store_ratings vsr ON s.id = vsr."Store_ID"
+        JOIN view_store_ratings_comparison vsr ON s.id = vsr."Store_ID"
         WHERE s.contact_no = v_contact_no;
         
         DBMS_OUTPUT.PUT_LINE('Store Name: ' || v_store_name || ', Address: ' || v_address_line || ', ' || 
@@ -1052,8 +1060,6 @@ BEGIN
             dbms_output.put_line('Invalid seller contact. Please check if contact entered is correct.');
         WHEN NO_DATA_FOUND THEN
             DBMS_OUTPUT.PUT_LINE('No returns requests are available to be approved.');
-        WHEN TOO_MANY_ROWS THEN
-            DBMS_OUTPUT.PUT_LINE('More than one store found for the given contact number, or data inconsistency.');
     END;
     
 EXCEPTION
@@ -1173,11 +1179,14 @@ GRANT EXECUTE ON BUSINESS_MANAGER.SUBMIT_FEEDBACK TO CUSTOMER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.filter_accepted_returns TO CUSTOMER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.filter_store_for_feedback TO CUSTOMER_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.get_returned_products TO CUSTOMER_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.show_returns_request TO CUSTOMER_USER;
+
 
 
 -- STORE_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.UPDATE_STORE_AVAILABILITY TO STORE_USER;
 GRANT EXECUTE ON BUSINESS_MANAGER.Get_Feedback_For_Store TO STORE_USER;
+GRANT EXECUTE ON BUSINESS_MANAGER.get_store_rating TO STORE_USER;
 
 -- SELLER_USER
 GRANT EXECUTE ON BUSINESS_MANAGER.ADD_PRODUCT TO SELLER_USER;
