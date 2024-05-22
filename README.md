@@ -16,6 +16,30 @@ Returns and refunds management poses significant challenges in the current suppl
    
 2. **Innovative Approach:** Introducing a customer reliability scoring mechanism, efficient return request processing, refund processing, status tracking, exception handling, and processing returns based on conditional discount category.
 
+## ER Diagram
+![ER Diagram](./Diagrams/ER_diagram.png)
+
+## Data Flow Diagram
+![Data Flow Diagram](./Diagrams/DataFlowDiagram.png)
+
+## Steps to execute the scripts and create the desired OLTP Database in Oracle
+
+1.	Login with admin credentials.
+2.	Execute the admin_grants.sql to grant permissions to the business manager.
+3.	Login with business manager credentials.
+    - Execute the DDL_DML.sql file to create tables and populate them with necessary default data.
+    - Execute the views.sql file to create the required views.
+    - Execute the reports.sql to create views for analysis.
+    - Execute the procedures.sql file to create the required procedures.
+4.	Login with customer credentials and execute the 1_customer_script.sql 
+5.	Login with seller credentials and run the 2_seller_script.sql.
+6.	Login with customer credentials and execute the 3_customer_script.sql
+7.	Login with store credentials and execute the 4_store_script.sql
+8.	Login with seller credentials and ex	ecute the 5_seller_script.sql
+9.	Login with store credentials and execute the 6_store_script.sql
+10.	Login with business manager credentials and execute the 7_reports_script.sql
+
+
 ## Objectives
 
 - Enable customers to initiate return requests and establish functionality for efficient management and processing based on predefined criteria.
@@ -28,37 +52,23 @@ Returns and refunds management poses significant challenges in the current suppl
 
 ## Business Rules
 
-- Each product is categorized, influencing the final price for customers. On special dates, each product category is associated with a distinct discount rate, resulting in variable final prices based on the date of purchase.
-- The total order value is a derived attribute, calculated by considering the number of products in the order and their respective prices at the time of purchase.
-- Products are ineligible for return if the customer initiates a return request after the specified "returnable date," which varies by product category, ensuring a streamlined and standardized return process.
-- When a customer initiates a return order, the system initially verifies its conformity with the product's returnable date. Subsequently, a further examination is conducted based on the customer's reliability index to determine the appropriate refund amount.
-- Customers can share feedback about the store where they processed their product return. This feedback serves as valuable information for other 3 customers, assisting them in making informed decisions about where to initiate their own product returns.
-- Each store receives a rating derived from the average of customer feedback, offering a concise and informative measure of its overall performance.
-- Customers will receive a notification specifying the reason for the rejection of their return request.
-- There will only be 1 table (ORDER_PRODUCT) entity which will have data for both Rejected and Successful Return requests.
-- If the request is rejected, then the processing fee will be 0.
-- The processing fee for the return request would be:
-    - Total Refund = Seller Refund – Processing fee
-- Order delivery date would be derived attribute and will be derived from Purchased date.
+-	Each product is categorized, influencing the final price for customers. On special dates, each product category is associated with a distinct discount rate, resulting in variable final prices based on the date of purchase. 
+-	The total order value is a derived attribute, calculated by considering the number of products in the order and their respective prices at the time of purchase. 
+-	Products are ineligible for return if the customer initiates a return request after the specified "returnable date," which varies by product category, ensuring a streamlined and standardized return process. 
+-	When a customer initiates a return order, the system initially verifies its conformity with the product's returnable date. Subsequently, a further examination is conducted based on the customer's reliability index to determine the appropriate refund amount. 
+-	Customers can share feedback about the store where they processed their product return. This feedback serves as valuable information for other customers, assisting them in making informed decisions about which store to make returns. 
+-	Each store receives a rating derived from the average of customer feedback, offering a concise and informative measure of its overall performance. 
+-	Customers will receive a notification specifying the reason for the rejection of their return request.
+-	If the request is rejected, then the processing fee will be 0. 
+-	The processing fee for the return request would be:  
+    - Total Refund = Price charged – Processing fee  
+-	Order delivery date would be derived attribute and will be derived from Purchased date.
     - For food products, it will be 1-day delivery.
     - For the other products, it will be 2 days.
-- Only existing customers can initiate a return request and access order and product tables.
-- Only existing sellers can fetch categories and add products.
+-	Only existing customers can initiate a return request and access order and product tables.
+-	Only existing sellers can fetch categories and add products.
 - Only existing store managers can update the status of the stores.
 
-## SCRIPT RUNNING RULES
-
-The Below shows the order in which the scripts must executed:
-
-- The required users and grants must be given, the following scripts must be executed in the order mention:
-
-- admin_grants.sql: creates the admin to perform the ddl and dml operation.
-
-- DDL_DML.sql: The DDL script should be executed first so the required entities are created before executing the DML and other scripts. The DML Scripts are now executed so that the required values in inserted in each tuple of the corresponding entity.
-
-- customer_script.sql, seller_script.sql store_script.sql: user specific scripts should be executed.
-
-- views.sql : The required views are now created by executing the views scripts. The views must be executed in the order in which they were created in the script file, the name of the script file is.
 
 ## Conclusion
 
@@ -67,7 +77,7 @@ The proposed solution aims to address the challenges associated with returns and
 ## Contributors
 | Name                       | Email                            |
 |----------------------------|----------------------------------|
+| Muskan Deepak Raisinghani  | raisinghani.m@northeastern.edu   |
 | Yashwanth Behara           | behara.y@northeastern.edu        |
 | Kameswara Praneeth         | kattamuri.k@northeastern.edu     |
 | Dev Mithunisvar Premraj    | premraj.d@northeastern.edu       |
-| Muskan Deepak Raisinghani  | raisinghani.m@northeastern.edu   |
